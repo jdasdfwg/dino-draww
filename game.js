@@ -522,12 +522,12 @@ function updateEnemies() {
         enemy.x -= gameSpeed; // Scroll with world
         enemy.x += enemy.direction * enemy.speed; // Walk toward player
         
-        // Shooting (only after score >= 100)
-        if (score >= 100) {
+        // Shooting (only after score >= 100 and in back half of screen)
+        if (score >= 100 && enemy.x > canvas.width / 2) {
             enemy.shootTimer--;
             if (enemy.shootTimer <= 0) {
                 spawnEnemyBullet(enemy);
-                enemy.shootTimer = 40 + Math.random() * 30; // Shoots faster!
+                enemy.shootTimer = 40 + Math.random() * 30;
             }
         }
         
