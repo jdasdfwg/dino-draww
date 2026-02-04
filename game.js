@@ -225,11 +225,26 @@ const player = {
         // Draw dinosaur body
         const drawY = this.y - this.height;
         
-        // === COWBOY HAT with curled ends ===
+        // === COWBOY HAT with curled brim and pinched crown ===
         ctx.fillStyle = '#535353';
         
-        // Hat crown (top part)
-        ctx.fillRect(this.x + 12, drawY - 20, 20, 12);
+        // Hat crown (top part) - with curved inward top like a real cowboy hat
+        ctx.beginPath();
+        ctx.moveTo(this.x + 12, drawY - 8);          // Bottom left of crown
+        ctx.lineTo(this.x + 12, drawY - 16);         // Left side up
+        ctx.quadraticCurveTo(this.x + 14, drawY - 22, this.x + 22, drawY - 18); // Left pinch curve inward
+        ctx.quadraticCurveTo(this.x + 30, drawY - 22, this.x + 32, drawY - 16); // Right pinch curve inward
+        ctx.lineTo(this.x + 32, drawY - 8);          // Right side down
+        ctx.closePath();
+        ctx.fill();
+        
+        // Crown crease detail (the indentation on top)
+        ctx.fillStyle = '#888';
+        ctx.beginPath();
+        ctx.moveTo(this.x + 16, drawY - 17);
+        ctx.quadraticCurveTo(this.x + 22, drawY - 14, this.x + 28, drawY - 17);
+        ctx.stroke();
+        ctx.fillStyle = '#535353';
         
         // Hat band
         ctx.fillStyle = '#888';
@@ -403,12 +418,36 @@ function updateBullets() {
         shootCooldown--;
     }
     
-    // Move bullets
+    // Move bullets and check collisions
     for (let i = bullets.length - 1; i >= 0; i--) {
         bullets[i].x += bullets[i].speed;
         
-        // Remove off-screen bullets
-        if (bullets[i].x > canvas.width + 20) {
+        // Check collision with cacti
+        let hitCactus = false;
+        for (let j = 0; j < cacti.length; j++) {
+            const cactus = cacti[j];
+            if (bullets[i].x + bullets[i].width > cactus.x &&
+                bullets[i].x < cactus.x + cactus.width &&
+                bullets[i].y + bullets[i].height > cactus.y &&
+                bullets[i].y < cactus.y + cactus.height) {
+                hitCactus = true;
+                // Create impact particles
+                for (let k = 0; k < 5; k++) {
+                    particles.push({
+                        x: bullets[i].x + bullets[i].width,
+                        y: bullets[i].y + bullets[i].height / 2,
+                        vx: -Math.random() * 3 - 1,
+                        vy: (Math.random() - 0.5) * 4,
+                        life: 20 + Math.random() * 10,
+                        size: 2 + Math.random() * 2
+                    });
+                }
+                break;
+            }
+        }
+        
+        // Remove bullet if hit cactus or off-screen
+        if (hitCactus || bullets[i].x > canvas.width + 20) {
             bullets.splice(i, 1);
         }
     }
