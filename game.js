@@ -808,9 +808,9 @@ function checkEnemyBulletPlayerCollision() {
     return false;
 }
 
-// Check if player stomps on enemy head (Mario style)
+// Check if player stomps on enemy (landing on any part while falling)
 function checkStompKill() {
-    if (!player.isJumping || player.velocityY < 0) return; // Only when falling
+    if (!player.isJumping || player.velocityY <= 0) return; // Only when falling down
     
     const playerHitbox = player.getHitbox();
     const playerBottom = playerHitbox.y + playerHitbox.height;
@@ -818,17 +818,18 @@ function checkStompKill() {
     for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
         const enemyTop = enemy.y - enemy.height;
-        const enemyLeft = enemy.x;
-        const enemyRight = enemy.x + enemy.width;
+        const enemyBottom = enemy.y;
+        const enemyLeft = enemy.x - 10; // Wider hitbox for stomp
+        const enemyRight = enemy.x + enemy.width + 10;
         
-        // Check if player is above enemy and landing on their head
+        // Check if player overlaps horizontally and is landing on enemy
         const horizontalOverlap = playerHitbox.x + playerHitbox.width > enemyLeft && 
                                   playerHitbox.x < enemyRight;
-        const landingOnHead = playerBottom >= enemyTop && 
-                              playerBottom <= enemyTop + 15 && // Within 15px of head
-                              player.velocityY > 0; // Falling down
+        // Landing anywhere on the enemy body (from head to mid-body)
+        const landingOnEnemy = playerBottom >= enemyTop && 
+                               playerBottom <= enemyTop + (enemy.height * 0.7); // Top 70% of body
         
-        if (horizontalOverlap && landingOnHead) {
+        if (horizontalOverlap && landingOnEnemy) {
             // Stomp kill!
             enemies.splice(i, 1);
             
