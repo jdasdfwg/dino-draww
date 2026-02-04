@@ -1511,8 +1511,8 @@ document.addEventListener('keydown', (e) => {
         toggleMute();
     }
     
-    // Shoot key: O
-    if (e.code === 'KeyO') {
+    // Shoot key: S
+    if (e.code === 'KeyS') {
         keys.shoot = true;
     }
 });
@@ -1521,7 +1521,7 @@ document.addEventListener('keyup', (e) => {
     if (e.code === 'Space' || e.code === 'KeyJ') {
         keys.jump = false;
     }
-    if (e.code === 'KeyO') {
+    if (e.code === 'KeyS') {
         keys.shoot = false;
     }
 });
