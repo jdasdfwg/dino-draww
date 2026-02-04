@@ -591,45 +591,127 @@ function drawEnemies() {
         
         ctx.fillStyle = '#535353';
         
-        // Body
-        ctx.fillRect(enemy.x, drawY + 12, 25, 30);
+        // === RAPTOR BANDIT ===
         
-        // Head
-        ctx.fillRect(enemy.x + (facingLeft ? -5 : 5), drawY, 22, 18);
+        // Hunched body (raptor posture)
+        ctx.beginPath();
+        if (facingLeft) {
+            ctx.moveTo(enemy.x + 25, drawY + 15);
+            ctx.lineTo(enemy.x + 5, drawY + 10);
+            ctx.lineTo(enemy.x, drawY + 25);
+            ctx.lineTo(enemy.x + 5, drawY + 40);
+            ctx.lineTo(enemy.x + 25, drawY + 40);
+            ctx.lineTo(enemy.x + 28, drawY + 25);
+        } else {
+            ctx.moveTo(enemy.x, drawY + 15);
+            ctx.lineTo(enemy.x + 20, drawY + 10);
+            ctx.lineTo(enemy.x + 25, drawY + 25);
+            ctx.lineTo(enemy.x + 20, drawY + 40);
+            ctx.lineTo(enemy.x, drawY + 40);
+            ctx.lineTo(enemy.x - 3, drawY + 25);
+        }
+        ctx.closePath();
+        ctx.fill();
         
-        // === BANDIT MASK ===
+        // Long raptor snout/head
+        ctx.beginPath();
+        if (facingLeft) {
+            // Head angled forward
+            ctx.moveTo(enemy.x + 5, drawY + 8);
+            ctx.lineTo(enemy.x - 18, drawY + 5);   // Long snout tip
+            ctx.lineTo(enemy.x - 20, drawY + 12);  // Bottom of snout
+            ctx.lineTo(enemy.x - 5, drawY + 18);   // Jaw
+            ctx.lineTo(enemy.x + 8, drawY + 18);
+            ctx.lineTo(enemy.x + 10, drawY + 8);
+        } else {
+            ctx.moveTo(enemy.x + 20, drawY + 8);
+            ctx.lineTo(enemy.x + 43, drawY + 5);
+            ctx.lineTo(enemy.x + 45, drawY + 12);
+            ctx.lineTo(enemy.x + 30, drawY + 18);
+            ctx.lineTo(enemy.x + 17, drawY + 18);
+            ctx.lineTo(enemy.x + 15, drawY + 8);
+        }
+        ctx.closePath();
+        ctx.fill();
+        
+        // Raptor teeth (jagged line on jaw)
+        ctx.fillStyle = '#888';
+        if (facingLeft) {
+            for (let t = 0; t < 4; t++) {
+                ctx.fillRect(enemy.x - 15 + t * 5, drawY + 12, 2, 3);
+            }
+        } else {
+            for (let t = 0; t < 4; t++) {
+                ctx.fillRect(enemy.x + 28 + t * 5, drawY + 12, 2, 3);
+            }
+        }
+        
+        // === BANDIT MASK across raptor eyes ===
         ctx.fillStyle = '#222';
-        // Mask band across eyes
-        ctx.fillRect(enemy.x + (facingLeft ? -6 : 4), drawY + 4, 24, 8);
+        if (facingLeft) {
+            ctx.fillRect(enemy.x - 8, drawY + 4, 20, 6);
+        } else {
+            ctx.fillRect(enemy.x + 13, drawY + 4, 20, 6);
+        }
         
-        // Eye holes in mask
+        // Menacing eye in mask
         ctx.fillStyle = '#fff';
         if (facingLeft) {
-            ctx.fillRect(enemy.x - 2, drawY + 6, 4, 4);
-            ctx.fillRect(enemy.x + 8, drawY + 6, 4, 4);
+            ctx.fillRect(enemy.x + 2, drawY + 5, 4, 4);
         } else {
-            ctx.fillRect(enemy.x + 13, drawY + 6, 4, 4);
-            ctx.fillRect(enemy.x + 23, drawY + 6, 4, 4);
+            ctx.fillRect(enemy.x + 19, drawY + 5, 4, 4);
         }
         
         ctx.fillStyle = '#535353';
         
-        // Legs (animated)
-        const legOffset = Math.sin(frameCount * 0.2) * 4;
-        ctx.fillRect(enemy.x + 3, drawY + 38, 7, 8 + legOffset);
-        ctx.fillRect(enemy.x + 14, drawY + 38, 7, 8 - legOffset);
+        // Raptor arms (small, bent forward)
+        if (facingLeft) {
+            ctx.fillRect(enemy.x - 2, drawY + 18, 8, 4);
+            ctx.fillRect(enemy.x - 5, drawY + 20, 5, 3);
+            // Claw
+            ctx.fillRect(enemy.x - 7, drawY + 21, 3, 4);
+        } else {
+            ctx.fillRect(enemy.x + 19, drawY + 18, 8, 4);
+            ctx.fillRect(enemy.x + 25, drawY + 20, 5, 3);
+            ctx.fillRect(enemy.x + 29, drawY + 21, 3, 4);
+        }
         
-        // Tail
-        ctx.fillRect(enemy.x + (facingLeft ? 22 : -10), drawY + 15, 12, 8);
+        // Raptor legs (bent, powerful)
+        const legOffset = Math.sin(frameCount * 0.25) * 3;
+        // Thigh
+        ctx.fillRect(enemy.x + 8, drawY + 35, 8, 6);
+        // Lower leg (angled back)
+        ctx.fillRect(enemy.x + 6, drawY + 39, 5, 8 + legOffset);
+        ctx.fillRect(enemy.x + 16, drawY + 39, 5, 8 - legOffset);
+        // Raptor sickle claw
+        ctx.fillStyle = '#333';
+        ctx.fillRect(enemy.x + 4, drawY + 44 + legOffset, 3, 4);
+        ctx.fillRect(enemy.x + 18, drawY + 44 - legOffset, 3, 4);
         
-        // Gun (if can shoot and facing player)
-        if (enemy.canShoot && facingLeft) {
-            // Arm
-            ctx.fillRect(enemy.x - 12, drawY + 14, 12, 5);
-            // Gun
+        ctx.fillStyle = '#535353';
+        
+        // Long stiff tail (for balance)
+        ctx.beginPath();
+        if (facingLeft) {
+            ctx.moveTo(enemy.x + 25, drawY + 20);
+            ctx.lineTo(enemy.x + 50, drawY + 15);
+            ctx.lineTo(enemy.x + 50, drawY + 22);
+            ctx.lineTo(enemy.x + 25, drawY + 28);
+        } else {
+            ctx.moveTo(enemy.x, drawY + 20);
+            ctx.lineTo(enemy.x - 25, drawY + 15);
+            ctx.lineTo(enemy.x - 25, drawY + 22);
+            ctx.lineTo(enemy.x, drawY + 28);
+        }
+        ctx.closePath();
+        ctx.fill();
+        
+        // Gun (when facing player and can shoot)
+        if (score >= 100 && facingLeft) {
             ctx.fillStyle = '#333';
-            ctx.fillRect(enemy.x - 22, drawY + 12, 12, 6);
-            ctx.fillRect(enemy.x - 28, drawY + 14, 8, 3);
+            // Gun in claw
+            ctx.fillRect(enemy.x - 18, drawY + 18, 12, 5);
+            ctx.fillRect(enemy.x - 24, drawY + 19, 8, 3);
         }
     });
 }
@@ -676,8 +758,8 @@ function checkBulletEnemyCollisions() {
                 enemies.splice(j, 1);
                 
                 // Bonus for killing enemy
-                score += 50;
-                createBonusText(enemy.x, enemy.y - enemy.height - 10, 'BANDIT! +50', '#333');
+                score += 5;
+                createBonusText(enemy.x, enemy.y - enemy.height - 10, 'BANDIT! +5', '#333');
                 playBonusSound();
                 
                 // Death particles
@@ -742,8 +824,8 @@ function checkStompKill() {
             player.velocityY = -10;
             
             // Bonus for stomp kill
-            score += 75;
-            createBonusText(enemy.x, enemyTop - 10, 'STOMP! +75', '#333');
+            score += 5;
+            createBonusText(enemy.x, enemyTop - 10, 'STOMP! +5', '#333');
             playBonusSound();
             
             // Death particles
