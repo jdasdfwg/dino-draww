@@ -479,37 +479,25 @@ function drawBullets() {
 const enemies = [];
 const enemyBullets = [];
 let lastEnemySpawn = 0;
-const ENEMY_SPAWN_INTERVAL = 300; // Frames between enemy spawns
+const ENEMY_SPAWN_INTERVAL = 180; // Frames between enemy spawns (3 seconds at 60fps)
 let enemyShootCooldown = 0;
 const ENEMY_SHOOT_COOLDOWN = 90; // Frames between enemy shots
 
 function spawnEnemy() {
-    // Only spawn if there are at least 2 cacti to patrol between
-    if (cacti.length < 2) return;
-    
-    // Find two consecutive cacti to patrol between
-    const cactus1 = cacti[cacti.length - 2];
-    const cactus2 = cacti[cacti.length - 1];
-    
-    if (!cactus1 || !cactus2) return;
-    
-    // Enemy patrols between the two cacti
-    const patrolLeft = cactus1.x + cactus1.width + 10;
-    const patrolRight = cactus2.x - 30;
-    
-    // Only spawn if there's enough room
-    if (patrolRight - patrolLeft < 40) return;
+    // Spawn enemy at right edge of screen, will patrol a fixed area
+    const patrolLeft = canvas.width + 20;
+    const patrolRight = canvas.width + 100;
     
     enemies.push({
-        x: (patrolLeft + patrolRight) / 2,
+        x: patrolLeft + 40,
         y: GROUND_Y,
         width: 35,
         height: 45,
         patrolLeft: patrolLeft,
         patrolRight: patrolRight,
-        direction: 1, // 1 = right, -1 = left
+        direction: -1, // Start facing player
         speed: 1.5,
-        canShoot: currentLevel >= 2, // Can shoot after level 2
+        canShoot: score >= 100, // Can shoot after score hits 100
         shootTimer: 60 + Math.random() * 60
     });
 }
@@ -534,8 +522,8 @@ function updateEnemies() {
             enemy.direction = 1;
         }
         
-        // Shooting (only after level 2 and facing player)
-        if (enemy.canShoot && enemy.direction === -1) {
+        // Shooting (only after score >= 100 and facing player)
+        if (score >= 100 && enemy.direction === -1) {
             enemy.shootTimer--;
             if (enemy.shootTimer <= 0) {
                 spawnEnemyBullet(enemy);
@@ -724,6 +712,53 @@ function checkEnemyBulletPlayerCollision() {
         }
     }
     return false;
+}
+
+// Check if player stomps on enemy head (Mario style)
+function checkStompKill() {
+    if (!player.isJumping || player.velocityY < 0) return; // Only when falling
+    
+    const playerHitbox = player.getHitbox();
+    const playerBottom = playerHitbox.y + playerHitbox.height;
+    
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
+        const enemyTop = enemy.y - enemy.height;
+        const enemyLeft = enemy.x;
+        const enemyRight = enemy.x + enemy.width;
+        
+        // Check if player is above enemy and landing on their head
+        const horizontalOverlap = playerHitbox.x + playerHitbox.width > enemyLeft && 
+                                  playerHitbox.x < enemyRight;
+        const landingOnHead = playerBottom >= enemyTop && 
+                              playerBottom <= enemyTop + 15 && // Within 15px of head
+                              player.velocityY > 0; // Falling down
+        
+        if (horizontalOverlap && landingOnHead) {
+            // Stomp kill!
+            enemies.splice(i, 1);
+            
+            // Bounce player up
+            player.velocityY = -10;
+            
+            // Bonus for stomp kill
+            score += 75;
+            createBonusText(enemy.x, enemyTop - 10, 'STOMP! +75', '#333');
+            playBonusSound();
+            
+            // Death particles
+            for (let k = 0; k < 10; k++) {
+                particles.push({
+                    x: enemy.x + enemy.width / 2,
+                    y: enemy.y - enemy.height / 2,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    life: 25 + Math.random() * 15,
+                    size: 3 + Math.random() * 3
+                });
+            }
+        }
+    }
 }
 
 // ============================================
@@ -1166,10 +1201,10 @@ function manageSpawns() {
         lastCactusSpawn = frameCount;
     }
     
-    // Spawn enemy bandits (after level 2, occasionally between cacti)
-    if (currentLevel >= 2 && frameCount - lastEnemySpawn > ENEMY_SPAWN_INTERVAL + Math.random() * 200) {
-        // 40% chance to spawn enemy when conditions are right
-        if (Math.random() < 0.4 && enemies.length < 3) {
+    // Spawn enemy bandits after score hits 100
+    if (score >= 100 && frameCount - lastEnemySpawn > ENEMY_SPAWN_INTERVAL) {
+        // 60% chance to spawn enemy, max 3 on screen
+        if (Math.random() < 0.6 && enemies.length < 3) {
             spawnEnemy();
         }
         lastEnemySpawn = frameCount;
@@ -1207,6 +1242,9 @@ function gameLoop() {
         
         // Check bullet-enemy collisions
         checkBulletEnemyCollisions();
+        
+        // Check for stomp kills (landing on enemy heads)
+        checkStompKill();
         
         // Check for collisions (player vs cactus/enemy bullets)
         if (checkCollisions() || checkEnemyBulletPlayerCollision()) {
