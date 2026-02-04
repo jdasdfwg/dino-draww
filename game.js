@@ -168,6 +168,8 @@ const player = {
     height: 50,
     velocityY: 0,
     isJumping: false,
+    jumpCount: 0,        // Track jumps for double jump
+    canDoubleJump: true, // Reset when key released
     isShooting: false,
     shootAnimFrame: 0,
     
@@ -175,16 +177,25 @@ const player = {
         this.y = GROUND_Y;
         this.velocityY = 0;
         this.isJumping = false;
+        this.jumpCount = 0;
+        this.canDoubleJump = true;
         this.isShooting = false;
         this.shootAnimFrame = 0;
     },
     
     update() {
-        // Handle jump
-        if (keys.jump && !this.isJumping) {
+        // Handle jump (with double jump)
+        if (keys.jump && this.canDoubleJump && this.jumpCount < 2) {
             this.velocityY = JUMP_FORCE;
             this.isJumping = true;
+            this.jumpCount++;
+            this.canDoubleJump = false; // Must release key to jump again
             playJumpSound();
+        }
+        
+        // Reset double jump ability when key released
+        if (!keys.jump) {
+            this.canDoubleJump = true;
         }
         
         // Handle shooting - cowboy draw style!
@@ -213,6 +224,7 @@ const player = {
             this.y = GROUND_Y;
             this.velocityY = 0;
             this.isJumping = false;
+            this.jumpCount = 0; // Reset double jump when landing
         }
     },
     
