@@ -94,26 +94,6 @@ function playJumpSound() {
     setTimeout(() => playTone(600, 0.1, 'square', 0.15), 50);
 }
 
-function playUmbrellaOpenSound() {
-    if (isMuted || !audioCtx) return;
-    playTone(300, 0.15, 'sine', 0.2);
-    setTimeout(() => playTone(450, 0.1, 'sine', 0.15), 50);
-}
-
-function playBlockSound() {
-    if (isMuted || !audioCtx) return;
-    playTone(800, 0.05, 'square', 0.25);
-    setTimeout(() => playTone(600, 0.1, 'square', 0.2), 30);
-    setTimeout(() => playTone(400, 0.15, 'square', 0.15), 60);
-}
-
-function playUmbrellaBreakSound() {
-    if (isMuted || !audioCtx) return;
-    playTone(200, 0.1, 'sawtooth', 0.3);
-    setTimeout(() => playTone(150, 0.15, 'sawtooth', 0.25), 50);
-    setTimeout(() => playTone(100, 0.2, 'sawtooth', 0.2), 100);
-}
-
 function playBonusSound() {
     if (isMuted || !audioCtx) return;
     playTone(880, 0.08, 'sine', 0.2);
@@ -165,8 +145,7 @@ function toggleMute() {
 // INPUT STATE
 // ============================================
 const keys = {
-    jump: false,      // Space or J
-    umbrella: false   // U key
+    jump: false      // Space or J
 };
 
 // ============================================
@@ -179,39 +158,16 @@ const player = {
     height: 50,
     velocityY: 0,
     isJumping: false,
-    isUmbrellaActive: false,
-    umbrellaBroken: false, // When true, umbrella can't be used until button released
-    
-    // Umbrella hitbox (above player)
-    umbrellaWidth: 60,
-    umbrellaHeight: 15,
     
     reset() {
         this.y = GROUND_Y;
         this.velocityY = 0;
         this.isJumping = false;
-        this.isUmbrellaActive = false;
-        this.umbrellaBroken = false;
     },
     
     update() {
-        // Handle umbrella - can be used anytime (including mid-air)
-        // If umbrella is broken, must release button before using again
-        if (keys.umbrella) {
-            if (!this.umbrellaBroken) {
-                if (!this.isUmbrellaActive) {
-                    playUmbrellaOpenSound();
-                }
-                this.isUmbrellaActive = true;
-            }
-        } else {
-            this.isUmbrellaActive = false;
-            this.umbrellaBroken = false; // Reset broken state when button released
-        }
-        
-        // Handle jump - can only START a jump when on ground and not using umbrella
-        // (once in the air, umbrella can be activated)
-        if (keys.jump && !this.isJumping && !this.isUmbrellaActive) {
+        // Handle jump
+        if (keys.jump && !this.isJumping) {
             this.velocityY = JUMP_FORCE;
             this.isJumping = true;
             playJumpSound();
@@ -219,13 +175,7 @@ const player = {
         
         // Apply gravity
         this.velocityY += GRAVITY;
-        
-        // Umbrella slows falling (parachute effect)
-        if (this.isUmbrellaActive && this.velocityY > 0) {
-            this.y += this.velocityY * 0.5; // Half speed when falling with umbrella
-        } else {
-            this.y += this.velocityY;
-        }
+        this.y += this.velocityY;
         
         // Ground collision
         if (this.y >= GROUND_Y) {
@@ -240,6 +190,16 @@ const player = {
         
         // Draw dinosaur body
         const drawY = this.y - this.height;
+        
+        // === COWBOY HAT ===
+        // Hat brim (wide rectangle)
+        ctx.fillRect(this.x + 5, drawY - 8, 35, 5);
+        // Hat crown (top part)
+        ctx.fillRect(this.x + 12, drawY - 20, 20, 14);
+        // Hat band
+        ctx.fillStyle = '#888';
+        ctx.fillRect(this.x + 12, drawY - 10, 20, 3);
+        ctx.fillStyle = '#535353';
         
         // Body
         ctx.fillRect(this.x, drawY + 15, 30, 35);
@@ -266,45 +226,6 @@ const player = {
         
         // Tail
         ctx.fillRect(this.x - 15, drawY + 20, 18, 10);
-        
-        // Draw umbrella if active
-        if (this.isUmbrellaActive) {
-            this.drawUmbrella(drawY);
-        }
-    },
-    
-    drawUmbrella(dinoY) {
-        const umbrellaX = this.x - 10;
-        const umbrellaY = dinoY - 30;
-        
-        ctx.fillStyle = '#535353';
-        
-        // Umbrella canopy (dome shape using arc)
-        ctx.beginPath();
-        ctx.arc(umbrellaX + 30, umbrellaY + 15, 35, Math.PI, 0, false);
-        ctx.fill();
-        
-        // Umbrella handle
-        ctx.fillRect(this.x + 18, dinoY - 5, 4, 25);
-        
-        // Umbrella edge decorations
-        ctx.fillStyle = '#fff';
-        for (let i = 0; i < 5; i++) {
-            ctx.beginPath();
-            ctx.arc(umbrellaX + 5 + i * 13, umbrellaY + 15, 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    },
-    
-    // Get umbrella hitbox for collision detection
-    // Made wider and taller to catch asteroids falling straight down
-    getUmbrellaHitbox() {
-        return {
-            x: this.x - 25,
-            y: this.y - this.height - 60,
-            width: 90,
-            height: 80
-        };
     },
     
     // Get player hitbox
@@ -500,110 +421,6 @@ function drawFireHydrant(obstacle) {
     ctx.fill();
 }
 
-// ============================================
-// OBSTACLES - ASTEROIDS
-// ============================================
-const asteroids = [];
-
-function spawnAsteroid() {
-    const size = 25 + Math.random() * 15;
-    
-    // Difficulty progression
-    const difficultyProgress = Math.min(1, frameCount / 3000);
-    
-    // Fall speed - slower for first 5 levels, then normal
-    let baseFallSpeed = 3.5 + difficultyProgress * 2.5;
-    if (currentLevel <= 5) {
-        baseFallSpeed = 2.5 + difficultyProgress * 1.5; // Slower fall for levels 1-5
-    }
-    
-    let spawnX, spawnY, speedX, speedY;
-    
-    // 10% chance: spawn from right side, dino runs into them as they fall
-    if (Math.random() < 0.1) {
-        spawnX = canvas.width - 50 + Math.random() * 100; // Spawn near right edge
-        spawnY = -size - 20; // Start from top like normal
-        speedX = -(3 + Math.random() * 2); // Travel left at -3 to -5 (towards dino)
-        speedY = baseFallSpeed * 0.8; // Fall slightly slower so dino runs into them
-    } else {
-        // 90%: spawn above player, fall mostly straight down
-        spawnX = player.x + (Math.random() - 0.5) * 60; // -30 to +30 from player center
-        spawnY = -size - 20;
-        speedX = (Math.random() - 0.5) * 0.8; // -0.4 to +0.4 (nearly straight)
-        speedY = baseFallSpeed + Math.random() * 1;
-    }
-    
-    // Pre-generate asteroid shape (so it doesn't flicker)
-    const shapeVariance = [];
-    for (let i = 0; i < 8; i++) {
-        shapeVariance.push(0.7 + Math.random() * 0.3);
-    }
-    
-    asteroids.push({
-        x: spawnX,
-        y: spawnY,
-        width: size,
-        height: size,
-        speedY: speedY,
-        speedX: speedX,
-        rotation: 0,
-        rotationSpeed: (Math.random() - 0.5) * 0.15,
-        shape: shapeVariance
-    });
-}
-
-function updateAsteroids() {
-    for (let i = asteroids.length - 1; i >= 0; i--) {
-        const asteroid = asteroids[i];
-        asteroid.x += asteroid.speedX;
-        asteroid.y += asteroid.speedY;
-        asteroid.rotation += asteroid.rotationSpeed;
-        
-        // Remove off-screen asteroids
-        if (asteroid.y > canvas.height + 50 || asteroid.x < -50) {
-            asteroids.splice(i, 1);
-        }
-    }
-}
-
-function drawAsteroids() {
-    asteroids.forEach(asteroid => {
-        ctx.save();
-        ctx.translate(asteroid.x + asteroid.width / 2, asteroid.y + asteroid.height / 2);
-        ctx.rotate(asteroid.rotation);
-        
-        ctx.fillStyle = '#535353';
-        
-        // Draw jagged asteroid shape using pre-generated variance
-        ctx.beginPath();
-        const points = 8;
-        for (let i = 0; i < points; i++) {
-            const angle = (i / points) * Math.PI * 2;
-            const radius = asteroid.width / 2 * asteroid.shape[i];
-            const px = Math.cos(angle) * radius;
-            const py = Math.sin(angle) * radius;
-            
-            if (i === 0) {
-                ctx.moveTo(px, py);
-            } else {
-                ctx.lineTo(px, py);
-            }
-        }
-        ctx.closePath();
-        ctx.fill();
-        
-        // Crater details
-        ctx.fillStyle = '#888';
-        ctx.beginPath();
-        ctx.arc(-3, -2, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(5, 4, 3, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.restore();
-    });
-}
 
 // ============================================
 // BACKGROUND ELEMENTS
@@ -656,8 +473,6 @@ const empireState = {
     targetHeight: 0
 };
 
-// Fire trail particles (behind asteroids in volcano era)
-const fireParticles = [];
 
 function initBackground() {
     // Initialize clouds
@@ -698,7 +513,6 @@ function updateBackground() {
     
     // Update all landmarks (they rise/fall based on era)
     updateLandmarks();
-    updateFireParticles();
 }
 
 function updateLandmarks() {
@@ -764,36 +578,6 @@ function updateLandmarks() {
     }
 }
 
-function updateFireParticles() {
-    // Only spawn fire behind asteroids in volcano era
-    if (currentEra === 'volcano') {
-        asteroids.forEach(asteroid => {
-            if (Math.random() < 0.4) {
-                fireParticles.push({
-                    x: asteroid.x + asteroid.width / 2 + (Math.random() - 0.5) * 10,
-                    y: asteroid.y - asteroid.height / 2 + (Math.random() - 0.5) * 10,
-                    vx: (Math.random() - 0.5) * 2,
-                    vy: -1 - Math.random() * 2,
-                    life: 15 + Math.random() * 10,
-                    maxLife: 25,
-                    size: 3 + Math.random() * 5
-                });
-            }
-        });
-    }
-    
-    // Update fire particles
-    for (let i = fireParticles.length - 1; i >= 0; i--) {
-        const p = fireParticles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life--;
-        p.size *= 0.95;
-        if (p.life <= 0) {
-            fireParticles.splice(i, 1);
-        }
-    }
-}
 
 function drawVolcano() {
     if (volcano.currentHeight <= 0) return;
@@ -986,19 +770,6 @@ function drawLandmarks() {
     drawEmpireState();
 }
 
-function drawFireTrails() {
-    if (currentEra !== 'volcano') return;
-    
-    fireParticles.forEach(p => {
-        const alpha = p.life / p.maxLife;
-        // Grey smoke trail (lighter when fresh, darker as it fades)
-        const grey = Math.floor(150 + (100 * alpha));
-        ctx.fillStyle = `rgba(${grey}, ${grey}, ${grey}, ${alpha * 0.7})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-    });
-}
 
 function drawBackground() {
     // Draw all landmarks behind everything
@@ -1040,7 +811,6 @@ const passedCacti = new Set();
 
 function checkCollisions() {
     const playerHitbox = player.getHitbox();
-    const umbrellaHitbox = player.getUmbrellaHitbox();
     
     // Check cactus collisions and near misses
     for (let i = cacti.length - 1; i >= 0; i--) {
@@ -1073,35 +843,6 @@ function checkCollisions() {
         }
     }
     
-    // Check asteroid collisions
-    for (let i = asteroids.length - 1; i >= 0; i--) {
-        const asteroid = asteroids[i];
-        
-        // Check if umbrella blocks asteroid (catches it above player)
-        if (player.isUmbrellaActive && checkCollision(umbrellaHitbox, asteroid)) {
-            // Asteroid blocked! Remove it (no points)
-            asteroids.splice(i, 1);
-            createBlockEffect(asteroid.x + asteroid.width / 2, asteroid.y + asteroid.height / 2);
-            playBlockSound();
-            continue;
-        }
-        
-        // Check if asteroid hits player
-        if (checkCollision(playerHitbox, asteroid)) {
-            // If umbrella is active, it breaks but saves the dino
-            if (player.isUmbrellaActive) {
-                asteroids.splice(i, 1);
-                player.umbrellaBroken = true; // Umbrella breaks
-                player.isUmbrellaActive = false;
-                createBlockEffect(asteroid.x + asteroid.width / 2, asteroid.y + asteroid.height / 2);
-                createBonusText(player.x + 20, player.y - 60, 'UMBRELLA BREAK!', '#333');
-                playUmbrellaBreakSound();
-                continue;
-            }
-            return true; // Game over (no umbrella protection)
-        }
-    }
-    
     return false;
 }
 
@@ -1109,19 +850,6 @@ function checkCollisions() {
 // VISUAL EFFECTS
 // ============================================
 const particles = [];
-
-function createBlockEffect(x, y) {
-    for (let i = 0; i < 8; i++) {
-        particles.push({
-            x: x,
-            y: y,
-            vx: (Math.random() - 0.5) * 8,
-            vy: (Math.random() - 0.5) * 8,
-            life: 20,
-            size: 3 + Math.random() * 4
-        });
-    }
-}
 
 function updateParticles() {
     for (let i = particles.length - 1; i >= 0; i--) {
@@ -1265,33 +993,6 @@ function updateEra() {
 // SPAWN MANAGEMENT
 // ============================================
 let lastCactusSpawn = 0;
-let lastAsteroidSpawn = 0;
-
-// Check if there's a cactus in the "jump zone" - where player needs to jump
-function isCactusInJumpZone() {
-    const jumpZoneStart = player.x + 50;  // Close enough that player needs to jump soon
-    const jumpZoneEnd = player.x + 200;   // Far enough that asteroid would conflict
-    
-    for (const cactus of cacti) {
-        if (cactus.x > jumpZoneStart && cactus.x < jumpZoneEnd) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Check if there's already an asteroid threatening the player
-function isAsteroidAlreadyThreatening() {
-    // Check if any asteroid is falling above the player
-    for (const asteroid of asteroids) {
-        if (asteroid.x > player.x - 40 && 
-            asteroid.x < player.x + 60 && 
-            asteroid.y < GROUND_Y) {
-            return true;
-        }
-    }
-    return false;
-}
 
 function manageSpawns() {
     // Early game (first 20 seconds / 1200 frames) - easier spawning
@@ -1306,44 +1007,6 @@ function manageSpawns() {
     if (frameCount - lastCactusSpawn > cactusInterval + Math.random() * 80) {
         spawnCactus();
         lastCactusSpawn = frameCount;
-    }
-    
-    // Spawn asteroids - starts easy, ramps up over time
-    // Don't spawn asteroid if:
-    // 1. There's a cactus in the jump zone (would require jumping + umbrella simultaneously)
-    // 2. There's already an asteroid threatening the player
-    
-    // Difficulty scaling based on time played (frameCount)
-    // Start very easy, ramp up gradually
-    const difficultyProgress = Math.min(1, frameCount / 3000); // Takes ~50 seconds to reach max difficulty
-    
-    // Level-based asteroid frequency adjustment
-    // Before level 6, asteroids spawn much less frequently
-    const isBeforeLevel6 = currentLevel < 6;
-    
-    // Min interval: starts at 180, goes down to 60 at max difficulty
-    // Before level 6: add extra 80 frames between spawns
-    let minAsteroidInterval = Math.max(60, 180 - difficultyProgress * 120);
-    if (isBeforeLevel6) {
-        minAsteroidInterval += 80;
-    }
-    
-    // Spawn chance: starts at 0.008 (0.8%), goes up to 0.05 (5%) at max difficulty
-    // Before level 6: halve the spawn chance
-    let asteroidChance = 0.008 + difficultyProgress * 0.042;
-    if (isBeforeLevel6) {
-        asteroidChance *= 0.5;
-    }
-    
-    const canSpawnAsteroid = 
-        score >= 110 && // No asteroids until score reaches 110
-        !isCactusInJumpZone() && // No cactus requiring a jump
-        !isAsteroidAlreadyThreatening() && // No existing asteroid threat
-        frameCount - lastAsteroidSpawn > minAsteroidInterval;
-    
-    if (canSpawnAsteroid && Math.random() < asteroidChance) {
-        spawnAsteroid();
-        lastAsteroidSpawn = frameCount;
     }
 }
 
@@ -1368,7 +1031,6 @@ function gameLoop() {
         // Update game objects
         player.update();
         updateCacti();
-        updateAsteroids();
         updateBackground();
         updateParticles();
         updateBonusTexts();
@@ -1387,9 +1049,7 @@ function gameLoop() {
     
     // Draw everything
     drawBackground();
-    drawFireTrails(); // Draw fire behind asteroids
     drawCacti();
-    drawAsteroids();
     player.draw();
     drawParticles();
     drawBonusTexts();
@@ -1421,7 +1081,6 @@ function startGame() {
     gameSpeed = BASE_SPEED;
     frameCount = 0;
     lastCactusSpawn = 0;
-    lastAsteroidSpawn = 0;
     currentEra = 'normal';
     currentLevel = 1;
     freePlayMode = false;
@@ -1429,10 +1088,8 @@ function startGame() {
     
     // Clear obstacles
     cacti.length = 0;
-    asteroids.length = 0;
     particles.length = 0;
     bonusTexts.length = 0;
-    fireParticles.length = 0;
     passedCacti.clear();
     cactusIdCounter = 0;
     
@@ -1548,11 +1205,6 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
-    // Umbrella key: U
-    if (e.code === 'KeyU') {
-        keys.umbrella = true;
-    }
-    
     // Pause key: P
     if (e.code === 'KeyP') {
         if (gameState === 'playing' || gameState === 'paused') {
@@ -1569,10 +1221,6 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('keyup', (e) => {
     if (e.code === 'Space' || e.code === 'KeyJ') {
         keys.jump = false;
-    }
-    
-    if (e.code === 'KeyU') {
-        keys.umbrella = false;
     }
 });
 
@@ -1605,7 +1253,6 @@ function init() {
 // ============================================
 function initTouchControls() {
     const btnJump = document.getElementById('btn-jump');
-    const btnUmbrella = document.getElementById('btn-umbrella');
     const btnStart = document.getElementById('btn-start');
     const btnRestart = document.getElementById('btn-restart');
     
@@ -1643,12 +1290,13 @@ function initTouchControls() {
         });
     }
     
-    if (!btnJump || !btnUmbrella) return;
+    if (!btnJump) return;
     
     // JUMP button - tap to jump (same as Space/J)
     btnJump.addEventListener('touchstart', (e) => {
         e.preventDefault();
         keys.jump = true;
+        initAudio();
         
         // Handle game state transitions (same as keyboard)
         if (gameState === 'start') {
@@ -1666,28 +1314,6 @@ function initTouchControls() {
     btnJump.addEventListener('touchcancel', (e) => {
         e.preventDefault();
         keys.jump = false;
-    }, { passive: false });
-    
-    // UMBRELLA button - hold to use (same as holding U)
-    btnUmbrella.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        initAudio(); // Ensure audio is ready
-        keys.umbrella = true;
-        // Immediately activate umbrella if playing (more responsive on mobile)
-        if (gameState === 'playing' && !player.umbrellaBroken) {
-            player.isUmbrellaActive = true;
-        }
-    }, { passive: false });
-    
-    btnUmbrella.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        keys.umbrella = false;
-    }, { passive: false });
-    
-    btnUmbrella.addEventListener('touchcancel', (e) => {
-        e.preventDefault();
-        keys.umbrella = false;
     }, { passive: false });
     
     // PAUSE button
