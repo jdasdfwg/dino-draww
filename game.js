@@ -422,7 +422,7 @@ function spawnBullet() {
         y: bulletY,
         width: 10,
         height: 4,
-        speed: 16
+        speed: 22 // Faster bullets!
     });
 }
 
@@ -501,21 +501,16 @@ let enemyShootCooldown = 0;
 const ENEMY_SHOOT_COOLDOWN = 90; // Frames between enemy shots
 
 function spawnEnemy() {
-    // Spawn enemy at right edge of screen, will patrol a fixed area
-    const patrolLeft = canvas.width + 20;
-    const patrolRight = canvas.width + 100;
-    
+    // Spawn enemy at right edge of screen, walks toward player
     enemies.push({
-        x: patrolLeft + 40,
+        x: canvas.width + 50,
         y: GROUND_Y,
         width: 35,
         height: 45,
-        patrolLeft: patrolLeft,
-        patrolRight: patrolRight,
-        direction: -1, // Start facing player
-        speed: 1.5,
-        canShoot: score >= 100, // Can shoot after score hits 100
-        shootTimer: 60 + Math.random() * 60
+        direction: -1, // Always facing/walking toward player
+        speed: 2, // Slightly faster
+        canShoot: score >= 100,
+        shootTimer: 30 + Math.random() * 30 // Shoots sooner!
     });
 }
 
@@ -523,33 +518,21 @@ function updateEnemies() {
     for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
         
-        // Move patrol bounds with game speed (they're relative to cacti)
-        enemy.patrolLeft -= gameSpeed;
-        enemy.patrolRight -= gameSpeed;
+        // Move enemy with game speed (scrolling) plus their own walking speed toward player
+        enemy.x -= gameSpeed; // Scroll with world
+        enemy.x += enemy.direction * enemy.speed; // Walk toward player
         
-        // Patrol movement
-        enemy.x += enemy.direction * enemy.speed;
-        
-        // Reverse direction at patrol bounds
-        if (enemy.x >= enemy.patrolRight) {
-            enemy.x = enemy.patrolRight;
-            enemy.direction = -1;
-        } else if (enemy.x <= enemy.patrolLeft) {
-            enemy.x = enemy.patrolLeft;
-            enemy.direction = 1;
-        }
-        
-        // Shooting (only after score >= 100 and facing player)
-        if (score >= 100 && enemy.direction === -1) {
+        // Shooting (only after score >= 100)
+        if (score >= 100) {
             enemy.shootTimer--;
             if (enemy.shootTimer <= 0) {
                 spawnEnemyBullet(enemy);
-                enemy.shootTimer = 80 + Math.random() * 60;
+                enemy.shootTimer = 40 + Math.random() * 30; // Shoots faster!
             }
         }
         
-        // Remove if off screen
-        if (enemy.patrolRight < -50) {
+        // Remove if off screen (left side)
+        if (enemy.x < -50) {
             enemies.splice(i, 1);
         }
     }
@@ -561,7 +544,7 @@ function spawnEnemyBullet(enemy) {
         y: enemy.y - enemy.height + 20,
         width: 10,
         height: 4,
-        speed: 8
+        speed: 14 // Faster bullets!
     });
     playShootSound();
 }
@@ -821,6 +804,38 @@ function checkEnemyBulletPlayerCollision() {
             bullet.y + bullet.height > playerHitbox.y &&
             bullet.y < playerHitbox.y + playerHitbox.height) {
             return true; // Player hit!
+        }
+    }
+    return false;
+}
+
+// Check if player runs into an enemy (not stomping, just collision)
+function checkPlayerEnemyCollision() {
+    const playerHitbox = player.getHitbox();
+    
+    for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+        const enemyHitbox = {
+            x: enemy.x,
+            y: enemy.y - enemy.height,
+            width: enemy.width,
+            height: enemy.height
+        };
+        
+        // Check collision
+        if (playerHitbox.x + playerHitbox.width > enemyHitbox.x &&
+            playerHitbox.x < enemyHitbox.x + enemyHitbox.width &&
+            playerHitbox.y + playerHitbox.height > enemyHitbox.y &&
+            playerHitbox.y < enemyHitbox.y + enemyHitbox.height) {
+            
+            // Only die if not stomping (stomping = falling from above)
+            const playerBottom = playerHitbox.y + playerHitbox.height;
+            const enemyTop = enemyHitbox.y;
+            const isStomping = player.velocityY > 0 && playerBottom <= enemyTop + (enemy.height * 0.7);
+            
+            if (!isStomping) {
+                return true; // Player hit by enemy!
+            }
         }
     }
     return false;
@@ -1420,8 +1435,8 @@ function gameLoop() {
             }
         }
         
-        // Check for collisions (player vs cactus/enemy bullets)
-        if (checkCollisions() || checkEnemyBulletPlayerCollision()) {
+        // Check for collisions (player vs cactus/enemy bullets/enemies)
+        if (checkCollisions() || checkEnemyBulletPlayerCollision() || checkPlayerEnemyCollision()) {
             gameOver();
         }
         
