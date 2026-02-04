@@ -21,7 +21,7 @@ const gameContainer = document.getElementById('game-container');
 const GROUND_Y = 325;           // Ground level (canvas is 375 tall)
 const GRAVITY = 0.8;            // Gravity strength
 const JUMP_FORCE = -15;         // Jump velocity
-const BASE_SPEED = 5;           // Starting game speed
+const BASE_SPEED = 7;           // Starting game speed (faster start!)
 const MAX_SPEED = 18;           // Maximum game speed
 const SPEED_INCREMENT = 0.002;  // Speed increase per frame (faster ramp up)
 
@@ -46,6 +46,11 @@ const MAX_LEVEL = 10;
 const WIN_SCORE = (MAX_LEVEL * POINTS_PER_LEVEL) + POINTS_PER_LEVEL; // 2750 points to win
 let freePlayMode = false;
 let levelUpAnimation = 0; // Timer for level up animation
+
+// Kill combo system
+let killCombo = 0;
+let comboTimer = 0;
+const COMBO_TIMEOUT = 180; // 3 seconds at 60fps to keep combo alive
 
 // Bonus text popups
 const bonusTexts = [];
@@ -769,13 +774,26 @@ function checkBulletEnemyCollisions() {
                 bullets.splice(i, 1);
                 enemies.splice(j, 1);
                 
-                // Bonus for killing enemy
-                score += 5;
-                createBonusText(enemy.x, enemy.y - enemy.height - 10, 'BANDIT! +5', '#333');
+                // Combo system!
+                killCombo++;
+                comboTimer = COMBO_TIMEOUT;
+                
+                // Bonus with combo multiplier
+                const basePoints = 5;
+                const comboMultiplier = Math.min(killCombo, 5); // Max 5x
+                const points = basePoints * comboMultiplier;
+                score += points;
+                
+                // Show combo text
+                if (killCombo > 1) {
+                    createBonusText(enemy.x, enemy.y - enemy.height - 25, `${killCombo}x COMBO!`, '#333');
+                }
+                createBonusText(enemy.x, enemy.y - enemy.height - 10, `BANDIT! +${points}`, '#333');
                 playBonusSound();
                 
-                // Death particles
-                for (let k = 0; k < 10; k++) {
+                // Death particles (more for combos!)
+                const particleCount = 10 + killCombo * 2;
+                for (let k = 0; k < particleCount; k++) {
                     particles.push({
                         x: enemy.x + enemy.width / 2,
                         y: enemy.y - enemy.height / 2,
@@ -808,6 +826,43 @@ function checkEnemyBulletPlayerCollision() {
     return false;
 }
 
+// Track bullets checked for near miss
+const passedBullets = new Set();
+let bulletIdCounter = 0;
+
+// Check for near miss with enemy bullets (dodge bonus!)
+function checkBulletNearMiss() {
+    const playerHitbox = player.getHitbox();
+    
+    for (let i = 0; i < enemyBullets.length; i++) {
+        const bullet = enemyBullets[i];
+        
+        // Give bullets an ID if they don't have one
+        if (bullet.id === undefined) {
+            bullet.id = bulletIdCounter++;
+        }
+        
+        // Skip if already gave bonus for this bullet
+        if (passedBullets.has(bullet.id)) continue;
+        
+        // Check if bullet just passed the player (within 20px vertically, bullet is behind player)
+        const bulletPastPlayer = bullet.x + bullet.width < playerHitbox.x;
+        const verticallyClose = Math.abs((bullet.y + bullet.height/2) - (playerHitbox.y + playerHitbox.height/2)) < 30;
+        
+        if (bulletPastPlayer && verticallyClose) {
+            passedBullets.add(bullet.id);
+            score += 15;
+            createBonusText(player.x, playerHitbox.y - 10, 'DODGE! +15', '#333');
+            playBonusSound();
+        }
+    }
+    
+    // Clean up old bullet IDs
+    if (passedBullets.size > 50) {
+        passedBullets.clear();
+    }
+}
+
 // Check if player stomps on enemy (landing on any part while falling)
 function checkStompKill() {
     if (!player.isJumping || player.velocityY <= 0) return; // Only when falling down
@@ -836,13 +891,26 @@ function checkStompKill() {
             // Bounce player up
             player.velocityY = -10;
             
-            // Bonus for stomp kill
-            score += 5;
-            createBonusText(enemy.x, enemyTop - 10, 'STOMP! +5', '#333');
+            // Combo system!
+            killCombo++;
+            comboTimer = COMBO_TIMEOUT;
+            
+            // Bonus with combo multiplier
+            const basePoints = 5;
+            const comboMultiplier = Math.min(killCombo, 5); // Max 5x
+            const points = basePoints * comboMultiplier;
+            score += points;
+            
+            // Show combo text
+            if (killCombo > 1) {
+                createBonusText(enemy.x, enemyTop - 25, `${killCombo}x COMBO!`, '#333');
+            }
+            createBonusText(enemy.x, enemyTop - 10, `STOMP! +${points}`, '#333');
             playBonusSound();
             
-            // Death particles
-            for (let k = 0; k < 10; k++) {
+            // Death particles (more for combos!)
+            const particleCount = 10 + killCombo * 2;
+            for (let k = 0; k < particleCount; k++) {
                 particles.push({
                     x: enemy.x + enemy.width / 2,
                     y: enemy.y - enemy.height / 2,
@@ -1124,8 +1192,8 @@ function checkCollisions() {
             const horizontalOverlap = playerHitbox.x < cactus.x + cactus.width && 
                                       playerHitbox.x + playerHitbox.width > cactus.x;
             
-            // If player is directly above cactus with small clearance (within 25 pixels)
-            if (horizontalOverlap && playerBottom < cactusTop && cactusTop - playerBottom < 25) {
+            // If player is directly above cactus with small clearance (within 40 pixels - more forgiving!)
+            if (horizontalOverlap && playerBottom < cactusTop && cactusTop - playerBottom < 40) {
                 passedCacti.add(cactus.id);
                 score += 25;
                 createBonusText(cactus.x + cactus.width / 2, cactus.y - 20, 'CLOSE! +25', '#333');
@@ -1341,6 +1409,17 @@ function gameLoop() {
         // Check for stomp kills (landing on enemy heads)
         checkStompKill();
         
+        // Check for bullet dodge bonus
+        checkBulletNearMiss();
+        
+        // Update combo timer
+        if (comboTimer > 0) {
+            comboTimer--;
+            if (comboTimer === 0) {
+                killCombo = 0; // Reset combo when timer expires
+            }
+        }
+        
         // Check for collisions (player vs cactus/enemy bullets)
         if (checkCollisions() || checkEnemyBulletPlayerCollision()) {
             gameOver();
@@ -1402,9 +1481,12 @@ function startGame() {
     particles.length = 0;
     bonusTexts.length = 0;
     passedCacti.clear();
+    passedBullets.clear();
     cactusIdCounter = 0;
     shootCooldown = 0;
     lastEnemySpawn = 0;
+    killCombo = 0;
+    comboTimer = 0;
     
     // Reset volcano
     volcano.eruptionParticles.length = 0;
