@@ -567,6 +567,18 @@ body {
     80% { transform: translateX(5px); }
 }
 
+/* Mini shake for close calls - quick, subtle */
+.mini-shake {
+    animation: mini-shake 0.1s;
+}
+
+@keyframes mini-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px) translateY(-1px); }
+    50% { transform: translateX(2px) translateY(1px); }
+    75% { transform: translateX(-1px); }
+}
+
 /* ============================================
    MOBILE TOUCH CONTROLS
    ============================================ */
