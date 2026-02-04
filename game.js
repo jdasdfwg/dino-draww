@@ -35,12 +35,9 @@ let gameSpeed = BASE_SPEED;
 let frameCount = 0;
 
 // Era system based on levels
-// Level 1: Normal
-// Level 2-3: Volcano Era
-// Level 4-5: Ice Age (Iceberg)
-// Level 6-7: Beach (Palm Tree)
-// Level 8-10: Civilization (Empire State Building)
-let currentEra = 'normal'; // 'normal', 'volcano', 'ice', 'beach', 'civilization'
+// Level 1: Normal (desert)
+// Level 2+: Volcano Era (volcano rises in background)
+let currentEra = 'normal'; // 'normal', 'volcano'
 
 // Level system
 let currentLevel = 1;
@@ -477,6 +474,259 @@ function drawBullets() {
 }
 
 // ============================================
+// ENEMY DINOS (Bad guys with masks)
+// ============================================
+const enemies = [];
+const enemyBullets = [];
+let lastEnemySpawn = 0;
+const ENEMY_SPAWN_INTERVAL = 300; // Frames between enemy spawns
+let enemyShootCooldown = 0;
+const ENEMY_SHOOT_COOLDOWN = 90; // Frames between enemy shots
+
+function spawnEnemy() {
+    // Only spawn if there are at least 2 cacti to patrol between
+    if (cacti.length < 2) return;
+    
+    // Find two consecutive cacti to patrol between
+    const cactus1 = cacti[cacti.length - 2];
+    const cactus2 = cacti[cacti.length - 1];
+    
+    if (!cactus1 || !cactus2) return;
+    
+    // Enemy patrols between the two cacti
+    const patrolLeft = cactus1.x + cactus1.width + 10;
+    const patrolRight = cactus2.x - 30;
+    
+    // Only spawn if there's enough room
+    if (patrolRight - patrolLeft < 40) return;
+    
+    enemies.push({
+        x: (patrolLeft + patrolRight) / 2,
+        y: GROUND_Y,
+        width: 35,
+        height: 45,
+        patrolLeft: patrolLeft,
+        patrolRight: patrolRight,
+        direction: 1, // 1 = right, -1 = left
+        speed: 1.5,
+        canShoot: currentLevel >= 2, // Can shoot after level 2
+        shootTimer: 60 + Math.random() * 60
+    });
+}
+
+function updateEnemies() {
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
+        
+        // Move patrol bounds with game speed (they're relative to cacti)
+        enemy.patrolLeft -= gameSpeed;
+        enemy.patrolRight -= gameSpeed;
+        
+        // Patrol movement
+        enemy.x += enemy.direction * enemy.speed;
+        
+        // Reverse direction at patrol bounds
+        if (enemy.x >= enemy.patrolRight) {
+            enemy.x = enemy.patrolRight;
+            enemy.direction = -1;
+        } else if (enemy.x <= enemy.patrolLeft) {
+            enemy.x = enemy.patrolLeft;
+            enemy.direction = 1;
+        }
+        
+        // Shooting (only after level 2 and facing player)
+        if (enemy.canShoot && enemy.direction === -1) {
+            enemy.shootTimer--;
+            if (enemy.shootTimer <= 0) {
+                spawnEnemyBullet(enemy);
+                enemy.shootTimer = 80 + Math.random() * 60;
+            }
+        }
+        
+        // Remove if off screen
+        if (enemy.patrolRight < -50) {
+            enemies.splice(i, 1);
+        }
+    }
+}
+
+function spawnEnemyBullet(enemy) {
+    enemyBullets.push({
+        x: enemy.x - 10,
+        y: enemy.y - enemy.height + 20,
+        width: 10,
+        height: 4,
+        speed: 8
+    });
+    playShootSound();
+}
+
+function updateEnemyBullets() {
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        enemyBullets[i].x -= enemyBullets[i].speed;
+        
+        // Check collision with cacti
+        let hitCactus = false;
+        for (let j = 0; j < cacti.length; j++) {
+            const cactus = cacti[j];
+            if (enemyBullets[i].x < cactus.x + cactus.width &&
+                enemyBullets[i].x + enemyBullets[i].width > cactus.x &&
+                enemyBullets[i].y + enemyBullets[i].height > cactus.y &&
+                enemyBullets[i].y < cactus.y + cactus.height) {
+                hitCactus = true;
+                // Impact particles
+                for (let k = 0; k < 4; k++) {
+                    particles.push({
+                        x: enemyBullets[i].x,
+                        y: enemyBullets[i].y + enemyBullets[i].height / 2,
+                        vx: Math.random() * 3 + 1,
+                        vy: (Math.random() - 0.5) * 4,
+                        life: 15 + Math.random() * 10,
+                        size: 2 + Math.random() * 2
+                    });
+                }
+                break;
+            }
+        }
+        
+        // Remove if hit cactus or off screen
+        if (hitCactus || enemyBullets[i].x < -20) {
+            enemyBullets.splice(i, 1);
+        }
+    }
+}
+
+function drawEnemies() {
+    enemies.forEach(enemy => {
+        const drawY = enemy.y - enemy.height;
+        const facingLeft = enemy.direction === -1;
+        
+        ctx.fillStyle = '#535353';
+        
+        // Body
+        ctx.fillRect(enemy.x, drawY + 12, 25, 30);
+        
+        // Head
+        ctx.fillRect(enemy.x + (facingLeft ? -5 : 5), drawY, 22, 18);
+        
+        // === BANDIT MASK ===
+        ctx.fillStyle = '#222';
+        // Mask band across eyes
+        ctx.fillRect(enemy.x + (facingLeft ? -6 : 4), drawY + 4, 24, 8);
+        
+        // Eye holes in mask
+        ctx.fillStyle = '#fff';
+        if (facingLeft) {
+            ctx.fillRect(enemy.x - 2, drawY + 6, 4, 4);
+            ctx.fillRect(enemy.x + 8, drawY + 6, 4, 4);
+        } else {
+            ctx.fillRect(enemy.x + 13, drawY + 6, 4, 4);
+            ctx.fillRect(enemy.x + 23, drawY + 6, 4, 4);
+        }
+        
+        ctx.fillStyle = '#535353';
+        
+        // Legs (animated)
+        const legOffset = Math.sin(frameCount * 0.2) * 4;
+        ctx.fillRect(enemy.x + 3, drawY + 38, 7, 8 + legOffset);
+        ctx.fillRect(enemy.x + 14, drawY + 38, 7, 8 - legOffset);
+        
+        // Tail
+        ctx.fillRect(enemy.x + (facingLeft ? 22 : -10), drawY + 15, 12, 8);
+        
+        // Gun (if can shoot and facing player)
+        if (enemy.canShoot && facingLeft) {
+            // Arm
+            ctx.fillRect(enemy.x - 12, drawY + 14, 12, 5);
+            // Gun
+            ctx.fillStyle = '#333';
+            ctx.fillRect(enemy.x - 22, drawY + 12, 12, 6);
+            ctx.fillRect(enemy.x - 28, drawY + 14, 8, 3);
+        }
+    });
+}
+
+function drawEnemyBullets() {
+    enemyBullets.forEach(bullet => {
+        // Bullet body
+        ctx.fillStyle = '#535353';
+        ctx.beginPath();
+        ctx.moveTo(bullet.x + bullet.width, bullet.y);
+        ctx.lineTo(bullet.x + 3, bullet.y);
+        ctx.quadraticCurveTo(bullet.x - 2, bullet.y + bullet.height / 2, 
+                            bullet.x + 3, bullet.y + bullet.height);
+        ctx.lineTo(bullet.x + bullet.width, bullet.y + bullet.height);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Trail
+        ctx.fillStyle = 'rgba(136, 136, 136, 0.5)';
+        ctx.fillRect(bullet.x + bullet.width, bullet.y + 1, 10, 2);
+    });
+}
+
+// Check if player bullet hits enemy
+function checkBulletEnemyCollisions() {
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        for (let j = enemies.length - 1; j >= 0; j--) {
+            const bullet = bullets[i];
+            const enemy = enemies[j];
+            const enemyHitbox = {
+                x: enemy.x,
+                y: enemy.y - enemy.height,
+                width: enemy.width,
+                height: enemy.height
+            };
+            
+            if (bullet.x + bullet.width > enemyHitbox.x &&
+                bullet.x < enemyHitbox.x + enemyHitbox.width &&
+                bullet.y + bullet.height > enemyHitbox.y &&
+                bullet.y < enemyHitbox.y + enemyHitbox.height) {
+                
+                // Enemy hit! Remove both
+                bullets.splice(i, 1);
+                enemies.splice(j, 1);
+                
+                // Bonus for killing enemy
+                score += 50;
+                createBonusText(enemy.x, enemy.y - enemy.height - 10, 'BANDIT! +50', '#333');
+                playBonusSound();
+                
+                // Death particles
+                for (let k = 0; k < 10; k++) {
+                    particles.push({
+                        x: enemy.x + enemy.width / 2,
+                        y: enemy.y - enemy.height / 2,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        life: 25 + Math.random() * 15,
+                        size: 3 + Math.random() * 3
+                    });
+                }
+                
+                break;
+            }
+        }
+    }
+}
+
+// Check if enemy bullet hits player
+function checkEnemyBulletPlayerCollision() {
+    const playerHitbox = player.getHitbox();
+    
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const bullet = enemyBullets[i];
+        if (bullet.x + bullet.width > playerHitbox.x &&
+            bullet.x < playerHitbox.x + playerHitbox.width &&
+            bullet.y + bullet.height > playerHitbox.y &&
+            bullet.y < playerHitbox.y + playerHitbox.height) {
+            return true; // Player hit!
+        }
+    }
+    return false;
+}
+
+// ============================================
 // OBSTACLES - CACTUS
 // ============================================
 const cacti = [];
@@ -513,17 +763,9 @@ function updateCacti() {
 }
 
 function drawCacti() {
+    // Always draw cacti (western theme)
     cacti.forEach(obstacle => {
-        // Draw different obstacles based on current era
-        if (currentEra === 'ice') {
-            drawSpikyIceberg(obstacle);
-        } else if (currentEra === 'beach') {
-            drawCoconutPile(obstacle);
-        } else if (currentEra === 'civilization') {
-            drawFireHydrant(obstacle);
-        } else {
-            drawCactus(obstacle);
-        }
+        drawCactus(obstacle);
     });
 }
 
@@ -544,131 +786,16 @@ function drawCactus(cactus) {
     }
 }
 
-function drawSpikyIceberg(obstacle) {
-    const x = obstacle.x;
-    const y = obstacle.y;
-    const w = obstacle.width;
-    const h = obstacle.height;
-    
-    // Main iceberg body (darker grey)
-    ctx.fillStyle = '#5a6a70';
-    ctx.beginPath();
-    ctx.moveTo(x, y + h);
-    ctx.lineTo(x + w * 0.2, y + h * 0.3);
-    ctx.lineTo(x + w * 0.4, y + h * 0.5);
-    ctx.lineTo(x + w * 0.5, y);
-    ctx.lineTo(x + w * 0.6, y + h * 0.4);
-    ctx.lineTo(x + w * 0.8, y + h * 0.2);
-    ctx.lineTo(x + w, y + h);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Ice highlights (medium grey)
-    ctx.fillStyle = '#7a8a90';
-    ctx.beginPath();
-    ctx.moveTo(x + w * 0.5, y);
-    ctx.lineTo(x + w * 0.55, y + h * 0.25);
-    ctx.lineTo(x + w * 0.45, y + h * 0.2);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Dark edges for spiky look
-    ctx.fillStyle = '#3a4a50';
-    ctx.beginPath();
-    ctx.moveTo(x + w * 0.8, y + h * 0.2);
-    ctx.lineTo(x + w, y + h);
-    ctx.lineTo(x + w * 0.85, y + h * 0.5);
-    ctx.closePath();
-    ctx.fill();
-}
-
-function drawCoconutPile(obstacle) {
-    const x = obstacle.x;
-    const y = obstacle.y;
-    const w = obstacle.width;
-    const h = obstacle.height;
-    
-    ctx.fillStyle = '#5a4a3a';
-    
-    // Bottom row of coconuts
-    const coconutR = Math.min(w / 3, h / 3);
-    ctx.beginPath();
-    ctx.arc(x + coconutR, y + h - coconutR, coconutR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x + w / 2, y + h - coconutR, coconutR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x + w - coconutR, y + h - coconutR, coconutR, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Top coconut
-    ctx.beginPath();
-    ctx.arc(x + w / 2, y + h - coconutR * 2.5, coconutR * 0.9, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Coconut details (three dots on each)
-    ctx.fillStyle = '#3a2a1a';
-    const dots = [[x + coconutR, y + h - coconutR], [x + w / 2, y + h - coconutR], [x + w - coconutR, y + h - coconutR], [x + w / 2, y + h - coconutR * 2.5]];
-    dots.forEach(([cx, cy]) => {
-        ctx.beginPath();
-        ctx.arc(cx - 3, cy - 2, 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx + 3, cy - 2, 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx, cy + 3, 2, 0, Math.PI * 2);
-        ctx.fill();
-    });
-}
-
-function drawFireHydrant(obstacle) {
-    const x = obstacle.x;
-    const y = obstacle.y;
-    const w = obstacle.width;
-    const h = obstacle.height;
-    
-    // Main body (dark grey for monochrome theme)
-    ctx.fillStyle = '#4a4a4a';
-    ctx.fillRect(x + w * 0.2, y + h * 0.3, w * 0.6, h * 0.7);
-    
-    // Top dome
-    ctx.beginPath();
-    ctx.arc(x + w / 2, y + h * 0.3, w * 0.3, Math.PI, 0, false);
-    ctx.fill();
-    
-    // Top cap
-    ctx.fillStyle = '#3a3a3a';
-    ctx.fillRect(x + w * 0.25, y, w * 0.5, h * 0.15);
-    
-    // Side nozzles
-    ctx.fillStyle = '#5a5a5a';
-    ctx.fillRect(x, y + h * 0.4, w * 0.25, h * 0.15);
-    ctx.fillRect(x + w * 0.75, y + h * 0.4, w * 0.25, h * 0.15);
-    
-    // Base
-    ctx.fillStyle = '#3a3a3a';
-    ctx.fillRect(x + w * 0.1, y + h * 0.85, w * 0.8, h * 0.15);
-    
-    // Center bolt
-    ctx.fillStyle = '#6a6a6a';
-    ctx.beginPath();
-    ctx.arc(x + w / 2, y + h * 0.55, w * 0.12, 0, Math.PI * 2);
-    ctx.fill();
-}
-
-
 // ============================================
 // BACKGROUND ELEMENTS
 // ============================================
 const clouds = [];
 const groundLines = [];
 
-// Era landmarks - all at same X position, rise/fall based on era
+// Era landmarks - volcano rises after level 2
 const LANDMARK_X = 700;
 
-// Volcano (Level 2-3)
+// Volcano (Level 2+)
 const volcano = {
     x: LANDMARK_X,
     baseY: GROUND_Y,
@@ -678,36 +805,6 @@ const volcano = {
     targetHeight: 0,
     eruptionParticles: [],
     lavaGlow: 0
-};
-
-// Iceberg (Level 4-5 - Ice Age)
-const iceberg = {
-    x: LANDMARK_X,
-    baseY: GROUND_Y,
-    width: 90,
-    height: 120,
-    currentHeight: 0,
-    targetHeight: 0
-};
-
-// Palm Tree (Level 6-7 - Beach)
-const palmTree = {
-    x: LANDMARK_X + 20,
-    baseY: GROUND_Y,
-    width: 50,
-    height: 110,
-    currentHeight: 0,
-    targetHeight: 0
-};
-
-// Empire State Building (Level 8-10 - Civilization)
-const empireState = {
-    x: LANDMARK_X,
-    baseY: GROUND_Y,
-    width: 60,
-    height: 140,
-    currentHeight: 0,
-    targetHeight: 0
 };
 
 
@@ -761,27 +858,6 @@ function updateLandmarks() {
         volcano.currentHeight = Math.min(volcano.targetHeight, volcano.currentHeight + riseSpeed);
     } else if (volcano.currentHeight > volcano.targetHeight) {
         volcano.currentHeight = Math.max(volcano.targetHeight, volcano.currentHeight - fallSpeed);
-    }
-    
-    // Update iceberg height
-    if (iceberg.currentHeight < iceberg.targetHeight) {
-        iceberg.currentHeight = Math.min(iceberg.targetHeight, iceberg.currentHeight + riseSpeed);
-    } else if (iceberg.currentHeight > iceberg.targetHeight) {
-        iceberg.currentHeight = Math.max(iceberg.targetHeight, iceberg.currentHeight - fallSpeed);
-    }
-    
-    // Update palm tree height
-    if (palmTree.currentHeight < palmTree.targetHeight) {
-        palmTree.currentHeight = Math.min(palmTree.targetHeight, palmTree.currentHeight + riseSpeed);
-    } else if (palmTree.currentHeight > palmTree.targetHeight) {
-        palmTree.currentHeight = Math.max(palmTree.targetHeight, palmTree.currentHeight - fallSpeed);
-    }
-    
-    // Update empire state height
-    if (empireState.currentHeight < empireState.targetHeight) {
-        empireState.currentHeight = Math.min(empireState.targetHeight, empireState.currentHeight + riseSpeed);
-    } else if (empireState.currentHeight > empireState.targetHeight) {
-        empireState.currentHeight = Math.max(empireState.targetHeight, empireState.currentHeight - fallSpeed);
     }
     
     // Volcano eruption particles (only when visible)
@@ -855,156 +931,9 @@ function drawVolcano() {
     });
 }
 
-function drawIceberg() {
-    if (iceberg.currentHeight <= 0) return;
-    
-    const h = iceberg.currentHeight;
-    const x = iceberg.x;
-    const y = iceberg.baseY;
-    
-    // Main iceberg body (jagged shape)
-    ctx.fillStyle = '#d0d0d0';
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + 15, y - h * 0.7);
-    ctx.lineTo(x + 30, y - h * 0.5);
-    ctx.lineTo(x + 45, y - h);
-    ctx.lineTo(x + 60, y - h * 0.6);
-    ctx.lineTo(x + 75, y - h * 0.8);
-    ctx.lineTo(x + 90, y);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Ice highlights
-    ctx.fillStyle = '#e8e8e8';
-    ctx.beginPath();
-    ctx.moveTo(x + 45, y - h);
-    ctx.lineTo(x + 50, y - h * 0.7);
-    ctx.lineTo(x + 40, y - h * 0.75);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Darker ice shadows
-    ctx.fillStyle = '#a0a0a0';
-    ctx.beginPath();
-    ctx.moveTo(x + 60, y - h * 0.6);
-    ctx.lineTo(x + 75, y - h * 0.8);
-    ctx.lineTo(x + 80, y - h * 0.3);
-    ctx.lineTo(x + 70, y - h * 0.4);
-    ctx.closePath();
-    ctx.fill();
-}
-
-function drawPalmTree() {
-    if (palmTree.currentHeight <= 0) return;
-    
-    const h = palmTree.currentHeight;
-    const x = palmTree.x;
-    const y = palmTree.baseY;
-    
-    // Trunk
-    ctx.fillStyle = '#5a5a5a';
-    ctx.beginPath();
-    ctx.moveTo(x + 20, y);
-    ctx.lineTo(x + 30, y);
-    ctx.lineTo(x + 28, y - h * 0.85);
-    ctx.lineTo(x + 22, y - h * 0.85);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Trunk texture lines
-    ctx.strokeStyle = '#404040';
-    ctx.lineWidth = 1;
-    for (let i = 1; i < 8; i++) {
-        const ty = y - (h * 0.85 * i / 8);
-        ctx.beginPath();
-        ctx.moveTo(x + 20, ty);
-        ctx.lineTo(x + 30, ty);
-        ctx.stroke();
-    }
-    
-    // Palm fronds (grey leaves)
-    ctx.fillStyle = '#707070';
-    const leafY = y - h;
-    
-    // Left fronds
-    ctx.beginPath();
-    ctx.moveTo(x + 25, leafY + 15);
-    ctx.quadraticCurveTo(x - 10, leafY - 10, x - 20, leafY + 20);
-    ctx.quadraticCurveTo(x, leafY + 5, x + 25, leafY + 15);
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.moveTo(x + 25, leafY + 15);
-    ctx.quadraticCurveTo(x - 5, leafY - 25, x - 15, leafY - 5);
-    ctx.quadraticCurveTo(x + 5, leafY, x + 25, leafY + 15);
-    ctx.fill();
-    
-    // Right fronds
-    ctx.beginPath();
-    ctx.moveTo(x + 25, leafY + 15);
-    ctx.quadraticCurveTo(x + 60, leafY - 10, x + 70, leafY + 20);
-    ctx.quadraticCurveTo(x + 50, leafY + 5, x + 25, leafY + 15);
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.moveTo(x + 25, leafY + 15);
-    ctx.quadraticCurveTo(x + 55, leafY - 25, x + 65, leafY - 5);
-    ctx.quadraticCurveTo(x + 45, leafY, x + 25, leafY + 15);
-    ctx.fill();
-    
-    // Top frond
-    ctx.beginPath();
-    ctx.moveTo(x + 25, leafY + 15);
-    ctx.quadraticCurveTo(x + 25, leafY - 30, x + 30, leafY - 20);
-    ctx.quadraticCurveTo(x + 25, leafY - 10, x + 25, leafY + 15);
-    ctx.fill();
-}
-
-function drawEmpireState() {
-    if (empireState.currentHeight <= 0) return;
-    
-    const h = empireState.currentHeight;
-    const x = empireState.x;
-    const y = empireState.baseY;
-    
-    // Main building body
-    ctx.fillStyle = '#4a4a4a';
-    ctx.fillRect(x + 10, y - h * 0.65, 40, h * 0.65);
-    
-    // Middle section (narrower)
-    ctx.fillStyle = '#3d3d3d';
-    ctx.fillRect(x + 15, y - h * 0.8, 30, h * 0.15);
-    
-    // Upper section (even narrower)
-    ctx.fillStyle = '#4a4a4a';
-    ctx.fillRect(x + 20, y - h * 0.9, 20, h * 0.1);
-    
-    // Spire
-    ctx.fillStyle = '#5a5a5a';
-    ctx.beginPath();
-    ctx.moveTo(x + 27, y - h * 0.9);
-    ctx.lineTo(x + 30, y - h);
-    ctx.lineTo(x + 33, y - h * 0.9);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Windows (grid pattern)
-    ctx.fillStyle = '#707070';
-    for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 4; col++) {
-            const wx = x + 14 + col * 9;
-            const wy = y - h * 0.6 + row * (h * 0.07);
-            ctx.fillRect(wx, wy, 5, 4);
-        }
-    }
-}
-
 function drawLandmarks() {
+    // Only volcano in the background (western desert theme)
     drawVolcano();
-    drawIceberg();
-    drawPalmTree();
-    drawEmpireState();
 }
 
 
@@ -1203,26 +1132,17 @@ function updateLevelDisplay() {
 
 function updateEra() {
     // Determine era based on current level
+    // Level 1: Normal desert, Level 2+: Volcano rises
     let newEra = 'normal';
-    if (currentLevel >= 8) {
-        newEra = 'civilization';
-    } else if (currentLevel >= 6) {
-        newEra = 'beach';
-    } else if (currentLevel >= 4) {
-        newEra = 'ice';
-    } else if (currentLevel >= 2) {
+    if (currentLevel >= 2) {
         newEra = 'volcano';
     }
     
     if (newEra !== currentEra) {
         currentEra = newEra;
         
-        // Set target heights based on era
-        // Previous era landmarks go down, new one rises
-        volcano.targetHeight = (currentEra === 'volcano') ? volcano.height : 0;
-        iceberg.targetHeight = (currentEra === 'ice') ? iceberg.height : 0;
-        palmTree.targetHeight = (currentEra === 'beach') ? palmTree.height : 0;
-        empireState.targetHeight = (currentEra === 'civilization') ? empireState.height : 0;
+        // Volcano rises after level 2 and stays up
+        volcano.targetHeight = (currentLevel >= 2) ? volcano.height : 0;
     }
 }
 
@@ -1244,6 +1164,15 @@ function manageSpawns() {
     if (frameCount - lastCactusSpawn > cactusInterval + Math.random() * 80) {
         spawnCactus();
         lastCactusSpawn = frameCount;
+    }
+    
+    // Spawn enemy bandits (after level 2, occasionally between cacti)
+    if (currentLevel >= 2 && frameCount - lastEnemySpawn > ENEMY_SPAWN_INTERVAL + Math.random() * 200) {
+        // 40% chance to spawn enemy when conditions are right
+        if (Math.random() < 0.4 && enemies.length < 3) {
+            spawnEnemy();
+        }
+        lastEnemySpawn = frameCount;
     }
 }
 
@@ -1268,14 +1197,19 @@ function gameLoop() {
         // Update game objects
         player.update();
         updateBullets();
+        updateEnemies();
+        updateEnemyBullets();
         updateCacti();
         updateBackground();
         updateParticles();
         updateBonusTexts();
         manageSpawns();
         
-        // Check for collisions
-        if (checkCollisions()) {
+        // Check bullet-enemy collisions
+        checkBulletEnemyCollisions();
+        
+        // Check for collisions (player vs cactus/enemy bullets)
+        if (checkCollisions() || checkEnemyBulletPlayerCollision()) {
             gameOver();
         }
         
@@ -1288,7 +1222,9 @@ function gameLoop() {
     // Draw everything
     drawBackground();
     drawCacti();
+    drawEnemies();
     drawBullets();
+    drawEnemyBullets();
     player.draw();
     drawParticles();
     drawBonusTexts();
@@ -1325,26 +1261,23 @@ function startGame() {
     freePlayMode = false;
     levelUpAnimation = 0;
     
-    // Clear obstacles
+    // Clear obstacles and enemies
     cacti.length = 0;
     bullets.length = 0;
+    enemies.length = 0;
+    enemyBullets.length = 0;
     particles.length = 0;
     bonusTexts.length = 0;
     passedCacti.clear();
     cactusIdCounter = 0;
     shootCooldown = 0;
+    lastEnemySpawn = 0;
     
-    // Reset all landmarks
+    // Reset volcano
     volcano.eruptionParticles.length = 0;
     volcano.currentHeight = 0;
     volcano.targetHeight = 0;
     volcano.lavaGlow = 0;
-    iceberg.currentHeight = 0;
-    iceberg.targetHeight = 0;
-    palmTree.currentHeight = 0;
-    palmTree.targetHeight = 0;
-    empireState.currentHeight = 0;
-    empireState.targetHeight = 0;
     
     // Reset player
     player.reset();
