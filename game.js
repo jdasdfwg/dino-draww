@@ -1587,8 +1587,8 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
-    // Y key to play again from game over
-    if (e.code === 'KeyY') {
+    // D key to play again from game over
+    if (e.code === 'KeyD') {
         if (gameState === 'gameover') {
             restartGame();
         }
