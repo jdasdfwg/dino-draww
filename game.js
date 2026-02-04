@@ -280,29 +280,94 @@ const player = {
     },
     
     drawGun(dinoY) {
+        const gunX = this.x + 38;
+        const gunY = dinoY + 14;
+        
         ctx.fillStyle = '#535353';
         
         // Arm extended forward
         ctx.fillRect(this.x + 25, dinoY + 18, 15, 6);
         
-        // Gun body
-        ctx.fillRect(this.x + 38, dinoY + 14, 16, 8);
+        // === COWBOY REVOLVER ===
         
-        // Gun barrel
-        ctx.fillRect(this.x + 52, dinoY + 16, 10, 4);
+        // Grip/Handle - curved cowboy style
+        ctx.beginPath();
+        ctx.moveTo(gunX + 2, gunY + 8);
+        ctx.lineTo(gunX + 8, gunY + 8);
+        ctx.lineTo(gunX + 10, gunY + 18);
+        ctx.quadraticCurveTo(gunX + 6, gunY + 22, gunX - 2, gunY + 20);
+        ctx.quadraticCurveTo(gunX - 2, gunY + 14, gunX + 2, gunY + 8);
+        ctx.fill();
         
-        // Gun handle
-        ctx.fillRect(this.x + 40, dinoY + 22, 5, 8);
+        // Grip detail lines
+        ctx.fillStyle = '#888';
+        ctx.fillRect(gunX + 2, gunY + 12, 5, 1);
+        ctx.fillRect(gunX + 1, gunY + 15, 5, 1);
+        
+        ctx.fillStyle = '#535353';
+        
+        // Frame/body of revolver
+        ctx.fillRect(gunX, gunY + 2, 14, 7);
+        
+        // Cylinder (the round part that holds bullets)
+        ctx.beginPath();
+        ctx.arc(gunX + 8, gunY + 5, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Cylinder detail - bullet chambers hint
+        ctx.fillStyle = '#888';
+        ctx.beginPath();
+        ctx.arc(gunX + 8, gunY + 5, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#535353';
+        ctx.beginPath();
+        ctx.arc(gunX + 8, gunY + 5, 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Barrel - long cowboy style
+        ctx.fillRect(gunX + 12, gunY + 3, 18, 4);
+        
+        // Barrel top ridge
+        ctx.fillStyle = '#888';
+        ctx.fillRect(gunX + 12, gunY + 2, 18, 1);
+        ctx.fillStyle = '#535353';
+        
+        // Front sight
+        ctx.fillRect(gunX + 28, gunY, 2, 3);
+        
+        // Trigger guard
+        ctx.beginPath();
+        ctx.moveTo(gunX + 4, gunY + 8);
+        ctx.quadraticCurveTo(gunX + 4, gunY + 14, gunX + 10, gunY + 12);
+        ctx.lineTo(gunX + 10, gunY + 8);
+        ctx.stroke();
+        
+        // Trigger
+        ctx.fillRect(gunX + 6, gunY + 9, 2, 4);
+        
+        // Hammer (cocked back)
+        ctx.fillRect(gunX - 2, gunY + 1, 4, 4);
+        ctx.fillRect(gunX - 3, gunY - 1, 3, 3);
         
         // Muzzle flash when shooting
         if (this.shootAnimFrame > 12) {
             ctx.fillStyle = '#888';
             ctx.beginPath();
-            ctx.moveTo(this.x + 62, dinoY + 18);
-            ctx.lineTo(this.x + 75, dinoY + 14);
-            ctx.lineTo(this.x + 72, dinoY + 18);
-            ctx.lineTo(this.x + 75, dinoY + 22);
-            ctx.lineTo(this.x + 62, dinoY + 18);
+            ctx.moveTo(gunX + 30, gunY + 5);
+            ctx.lineTo(gunX + 45, gunY - 2);
+            ctx.lineTo(gunX + 40, gunY + 5);
+            ctx.lineTo(gunX + 45, gunY + 12);
+            ctx.lineTo(gunX + 30, gunY + 5);
+            ctx.fill();
+            
+            // Inner flash
+            ctx.fillStyle = '#ccc';
+            ctx.beginPath();
+            ctx.moveTo(gunX + 30, gunY + 5);
+            ctx.lineTo(gunX + 38, gunY + 1);
+            ctx.lineTo(gunX + 36, gunY + 5);
+            ctx.lineTo(gunX + 38, gunY + 9);
+            ctx.lineTo(gunX + 30, gunY + 5);
             ctx.fill();
         }
     },
@@ -322,13 +387,13 @@ const player = {
 // BULLETS
 // ============================================
 function spawnBullet() {
-    const bulletY = player.y - player.height + 20; // Gun barrel height
+    const bulletY = player.y - player.height + 19; // Gun barrel height
     bullets.push({
-        x: player.x + 62,
+        x: player.x + 68, // End of revolver barrel
         y: bulletY,
-        width: 8,
+        width: 10,
         height: 4,
-        speed: 15
+        speed: 16
     });
 }
 
@@ -350,14 +415,25 @@ function updateBullets() {
 }
 
 function drawBullets() {
-    ctx.fillStyle = '#535353';
     bullets.forEach(bullet => {
-        // Bullet body
-        ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
-        // Bullet trail
-        ctx.fillStyle = '#888';
-        ctx.fillRect(bullet.x - 6, bullet.y + 1, 6, 2);
+        // Bullet body - revolver round shape
         ctx.fillStyle = '#535353';
+        ctx.beginPath();
+        ctx.moveTo(bullet.x, bullet.y);
+        ctx.lineTo(bullet.x + bullet.width - 3, bullet.y);
+        ctx.quadraticCurveTo(bullet.x + bullet.width + 2, bullet.y + bullet.height / 2, 
+                            bullet.x + bullet.width - 3, bullet.y + bullet.height);
+        ctx.lineTo(bullet.x, bullet.y + bullet.height);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Bullet casing back
+        ctx.fillStyle = '#888';
+        ctx.fillRect(bullet.x - 2, bullet.y, 3, bullet.height);
+        
+        // Smoke trail
+        ctx.fillStyle = 'rgba(136, 136, 136, 0.5)';
+        ctx.fillRect(bullet.x - 12, bullet.y + 1, 10, 2);
     });
 }
 
