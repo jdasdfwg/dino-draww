@@ -508,9 +508,9 @@ function spawnEnemy() {
         width: 35,
         height: 45,
         direction: -1, // Always facing/walking toward player
-        speed: 2, // Slightly faster
+        speed: 2,
         canShoot: score >= 100,
-        shootTimer: 30 + Math.random() * 30 // Shoots sooner!
+        shootTimer: 10 + Math.random() * 15 // Quick first shot!
     });
 }
 
@@ -522,12 +522,14 @@ function updateEnemies() {
         enemy.x -= gameSpeed; // Scroll with world
         enemy.x += enemy.direction * enemy.speed; // Walk toward player
         
-        // Shooting (only after score >= 100 and in back half of screen)
-        if (score >= 100 && enemy.x > canvas.width / 2) {
+        // Timer always counts down, but only shoot when in back 2/3 of screen
+        if (score >= 100) {
             enemy.shootTimer--;
-            if (enemy.shootTimer <= 0) {
+            if (enemy.shootTimer <= 0 && enemy.x > canvas.width / 3) {
                 spawnEnemyBullet(enemy);
-                enemy.shootTimer = 40 + Math.random() * 30;
+                enemy.shootTimer = 25 + Math.random() * 20; // Reload faster
+            } else if (enemy.shootTimer <= 0) {
+                enemy.shootTimer = 5; // Keep trying if past shooting zone
             }
         }
         
