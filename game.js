@@ -134,6 +134,13 @@ function playStartSound() {
     setTimeout(() => playTone(660, 0.15, 'square', 0.2), 160);
 }
 
+function playShootSound() {
+    if (isMuted || !audioCtx) return;
+    // Quick gunshot sound - low thud followed by sharp crack
+    playTone(150, 0.08, 'square', 0.4);
+    setTimeout(() => playTone(800, 0.05, 'sawtooth', 0.2), 20);
+}
+
 function toggleMute() {
     isMuted = !isMuted;
     const btn = document.getElementById('btn-mute');
@@ -145,8 +152,14 @@ function toggleMute() {
 // INPUT STATE
 // ============================================
 const keys = {
-    jump: false      // Space or J
+    jump: false,     // Space or J
+    shoot: false     // O key
 };
+
+// Bullets array
+const bullets = [];
+let shootCooldown = 0;
+const SHOOT_COOLDOWN = 20; // Frames between shots
 
 // ============================================
 // PLAYER (DINOSAUR)
@@ -158,11 +171,15 @@ const player = {
     height: 50,
     velocityY: 0,
     isJumping: false,
+    isShooting: false,
+    shootAnimFrame: 0,
     
     reset() {
         this.y = GROUND_Y;
         this.velocityY = 0;
         this.isJumping = false;
+        this.isShooting = false;
+        this.shootAnimFrame = 0;
     },
     
     update() {
@@ -171,6 +188,23 @@ const player = {
             this.velocityY = JUMP_FORCE;
             this.isJumping = true;
             playJumpSound();
+        }
+        
+        // Handle shooting - cowboy draw style!
+        if (keys.shoot && shootCooldown <= 0) {
+            this.isShooting = true;
+            this.shootAnimFrame = 15; // Animation frames
+            shootCooldown = SHOOT_COOLDOWN;
+            spawnBullet();
+            playShootSound();
+        }
+        
+        // Update shooting animation
+        if (this.shootAnimFrame > 0) {
+            this.shootAnimFrame--;
+            if (this.shootAnimFrame === 0) {
+                this.isShooting = false;
+            }
         }
         
         // Apply gravity
@@ -191,15 +225,27 @@ const player = {
         // Draw dinosaur body
         const drawY = this.y - this.height;
         
-        // === COWBOY HAT ===
-        // Hat brim (wide rectangle)
-        ctx.fillRect(this.x + 5, drawY - 8, 35, 5);
+        // === COWBOY HAT with curled ends ===
+        ctx.fillStyle = '#535353';
+        
         // Hat crown (top part)
-        ctx.fillRect(this.x + 12, drawY - 20, 20, 14);
+        ctx.fillRect(this.x + 12, drawY - 20, 20, 12);
+        
         // Hat band
         ctx.fillStyle = '#888';
         ctx.fillRect(this.x + 12, drawY - 10, 20, 3);
         ctx.fillStyle = '#535353';
+        
+        // Hat brim with curled up ends
+        ctx.beginPath();
+        ctx.moveTo(this.x + 2, drawY - 5);           // Left curl start
+        ctx.quadraticCurveTo(this.x + 5, drawY - 12, this.x + 10, drawY - 7);  // Left curl up
+        ctx.lineTo(this.x + 34, drawY - 7);          // Flat middle
+        ctx.quadraticCurveTo(this.x + 39, drawY - 12, this.x + 42, drawY - 5); // Right curl up
+        ctx.lineTo(this.x + 40, drawY - 3);          // Right edge down
+        ctx.lineTo(this.x + 4, drawY - 3);           // Bottom of brim
+        ctx.lineTo(this.x + 2, drawY - 5);           // Back to start
+        ctx.fill();
         
         // Body
         ctx.fillRect(this.x, drawY + 15, 30, 35);
@@ -226,6 +272,39 @@ const player = {
         
         // Tail
         ctx.fillRect(this.x - 15, drawY + 20, 18, 10);
+        
+        // === GUN & SHOOTING ===
+        if (this.isShooting || this.shootAnimFrame > 0) {
+            this.drawGun(drawY);
+        }
+    },
+    
+    drawGun(dinoY) {
+        ctx.fillStyle = '#535353';
+        
+        // Arm extended forward
+        ctx.fillRect(this.x + 25, dinoY + 18, 15, 6);
+        
+        // Gun body
+        ctx.fillRect(this.x + 38, dinoY + 14, 16, 8);
+        
+        // Gun barrel
+        ctx.fillRect(this.x + 52, dinoY + 16, 10, 4);
+        
+        // Gun handle
+        ctx.fillRect(this.x + 40, dinoY + 22, 5, 8);
+        
+        // Muzzle flash when shooting
+        if (this.shootAnimFrame > 12) {
+            ctx.fillStyle = '#888';
+            ctx.beginPath();
+            ctx.moveTo(this.x + 62, dinoY + 18);
+            ctx.lineTo(this.x + 75, dinoY + 14);
+            ctx.lineTo(this.x + 72, dinoY + 18);
+            ctx.lineTo(this.x + 75, dinoY + 22);
+            ctx.lineTo(this.x + 62, dinoY + 18);
+            ctx.fill();
+        }
     },
     
     // Get player hitbox
@@ -238,6 +317,49 @@ const player = {
         };
     }
 };
+
+// ============================================
+// BULLETS
+// ============================================
+function spawnBullet() {
+    const bulletY = player.y - player.height + 20; // Gun barrel height
+    bullets.push({
+        x: player.x + 62,
+        y: bulletY,
+        width: 8,
+        height: 4,
+        speed: 15
+    });
+}
+
+function updateBullets() {
+    // Update cooldown
+    if (shootCooldown > 0) {
+        shootCooldown--;
+    }
+    
+    // Move bullets
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].x += bullets[i].speed;
+        
+        // Remove off-screen bullets
+        if (bullets[i].x > canvas.width + 20) {
+            bullets.splice(i, 1);
+        }
+    }
+}
+
+function drawBullets() {
+    ctx.fillStyle = '#535353';
+    bullets.forEach(bullet => {
+        // Bullet body
+        ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+        // Bullet trail
+        ctx.fillStyle = '#888';
+        ctx.fillRect(bullet.x - 6, bullet.y + 1, 6, 2);
+        ctx.fillStyle = '#535353';
+    });
+}
 
 // ============================================
 // OBSTACLES - CACTUS
@@ -1030,6 +1152,7 @@ function gameLoop() {
         
         // Update game objects
         player.update();
+        updateBullets();
         updateCacti();
         updateBackground();
         updateParticles();
@@ -1050,6 +1173,7 @@ function gameLoop() {
     // Draw everything
     drawBackground();
     drawCacti();
+    drawBullets();
     player.draw();
     drawParticles();
     drawBonusTexts();
@@ -1088,10 +1212,12 @@ function startGame() {
     
     // Clear obstacles
     cacti.length = 0;
+    bullets.length = 0;
     particles.length = 0;
     bonusTexts.length = 0;
     passedCacti.clear();
     cactusIdCounter = 0;
+    shootCooldown = 0;
     
     // Reset all landmarks
     volcano.eruptionParticles.length = 0;
@@ -1216,11 +1342,19 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyM') {
         toggleMute();
     }
+    
+    // Shoot key: O
+    if (e.code === 'KeyO') {
+        keys.shoot = true;
+    }
 });
 
 document.addEventListener('keyup', (e) => {
     if (e.code === 'Space' || e.code === 'KeyJ') {
         keys.jump = false;
+    }
+    if (e.code === 'KeyO') {
+        keys.shoot = false;
     }
 });
 
@@ -1315,6 +1449,26 @@ function initTouchControls() {
         e.preventDefault();
         keys.jump = false;
     }, { passive: false });
+    
+    // SHOOT button - tap to shoot (same as O key)
+    const btnShoot = document.getElementById('btn-shoot');
+    if (btnShoot) {
+        btnShoot.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys.shoot = true;
+            initAudio();
+        }, { passive: false });
+        
+        btnShoot.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            keys.shoot = false;
+        }, { passive: false });
+        
+        btnShoot.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            keys.shoot = false;
+        }, { passive: false });
+    }
     
     // PAUSE button
     const btnPause = document.getElementById('btn-pause');

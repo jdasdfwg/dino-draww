@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-    <title>Dino Runner - Umbrella Edition</title>
+    <title>Dino Draww - Cowboy Dino Shooter</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,16 +18,18 @@
         </div>
         <div id="key-hints" class="key-hints desktop-only">
             <span>J/SPACE: Jump</span>
+            <span>O: Shoot</span>
             <span>P: Pause</span>
         </div>
         <button id="btn-mute" class="btn-mute" aria-label="Mute">♪</button>
         <button id="btn-pause" class="btn-pause" aria-label="Pause">| |</button>
         <div id="start-screen">
             <div class="start-content">
-                <h1>DINO RUNNER</h1>
-                <p class="subtitle">Pass 10 Levels to Escape Extinction</p>
+                <h1>DINO DRAWW</h1>
+                <p class="subtitle">Cowboy Dino Shooter</p>
                 <div class="controls-info">
                     <p><strong>SPACE / J</strong> - Jump over cactus</p>
+                    <p><strong>O</strong> - Draw &amp; Shoot</p>
                 </div>
                 <p class="press-start desktop-only">- Press SPACE to Play -</p>
                 <button id="btn-start" class="btn-play mobile-only">TAP TO PLAY</button>
@@ -64,6 +66,7 @@
         <!-- Mobile touch controls (shown only on small screens via CSS) -->
         <div id="touch-controls" class="touch-controls">
             <button id="btn-jump" class="touch-btn touch-btn-jump" aria-label="Jump">▲</button>
+            <button id="btn-shoot" class="touch-btn touch-btn-shoot" aria-label="Shoot">🔫</button>
         </div>
     </div>
     <script src="game.js"></script>
