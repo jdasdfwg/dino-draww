@@ -266,7 +266,7 @@ function initLeaderboard() {
 const GROUND_Y = 325;           // Ground level (canvas is 375 tall)
 const GRAVITY = 0.8;            // Gravity strength
 const JUMP_FORCE = -15;         // Jump velocity
-const BASE_SPEED = 7;           // Starting game speed (faster start!)
+const BASE_SPEED = 9;           // Starting game speed (even faster start!)
 const MAX_SPEED = 18;           // Maximum game speed
 const SPEED_INCREMENT = 0.002;  // Speed increase per frame (faster ramp up)
 
@@ -767,7 +767,7 @@ function drawBullets() {
 const enemies = [];
 const enemyBullets = [];
 let lastEnemySpawn = 0;
-const ENEMY_SPAWN_INTERVAL = 180; // Frames between enemy spawns (3 seconds at 60fps)
+const ENEMY_SPAWN_INTERVAL = 120; // Frames between enemy spawns (2 seconds at 60fps)
 let enemyShootCooldown = 0;
 const ENEMY_SHOOT_COOLDOWN = 90; // Frames between enemy shots
 
@@ -2010,15 +2010,21 @@ function manageSpawns() {
     }
     
     // Spawn enemy bandits after score hits 100
-    // After level 5, spawn more frequently and allow more on screen
+    // More bandits as levels progress
     let enemySpawnInterval = ENEMY_SPAWN_INTERVAL;
-    let maxEnemies = 3;
-    let spawnChance = 0.6;
+    let maxEnemies = 4;
+    let spawnChance = 0.75;
     
-    if (currentLevel >= 5) {
-        enemySpawnInterval = 120; // Faster spawns after level 5
+    if (currentLevel >= 3) {
+        enemySpawnInterval = 100; // Faster spawns after level 3
         maxEnemies = 5;
-        spawnChance = 0.75;
+        spawnChance = 0.8;
+    }
+    
+    if (currentLevel >= 6) {
+        enemySpawnInterval = 80; // Even faster spawns after level 6
+        maxEnemies = 6;
+        spawnChance = 0.85;
     }
     
     if (score >= 100 && frameCount - lastEnemySpawn > enemySpawnInterval) {
