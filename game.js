@@ -421,7 +421,7 @@ const keys = {
 // Bullets array
 const bullets = [];
 let shootCooldown = 0;
-const SHOOT_COOLDOWN = 20; // Frames between shots
+const SHOOT_COOLDOWN = 12; // Frames between shots (faster shooting)
 let shootKeyReleased = true; // Must release S key between shots (no rapid fire)
 
 // ============================================
@@ -1012,8 +1012,8 @@ let lastPteroSpawn = 0;
 const PTERO_SPAWN_INTERVAL = 400; // Less frequent than bandits
 
 function spawnPterodactyl() {
-    // Spawn at random height in the air (player must double jump or shoot)
-    const flyHeight = 120 + Math.random() * 80; // Between 120-200 pixels above ground
+    // Spawn at lower height (easier to shoot/stomp)
+    const flyHeight = 80 + Math.random() * 60; // Between 80-140 pixels above ground
     pterodactyls.push({
         x: canvas.width + 50,
         y: GROUND_Y - flyHeight,
@@ -1127,7 +1127,19 @@ function drawPterodactyls() {
         ctx.closePath();
         ctx.fill();
         
-        // Red menacing eye
+        // Bandit mask (black mask over eyes)
+        ctx.fillStyle = '#222';
+        ctx.fillRect(px + 4, py + 7, 14, 5); // Mask band across face
+        // Mask ties flowing back
+        ctx.fillRect(px + 16, py + 8, 8, 3);
+        ctx.beginPath();
+        ctx.moveTo(px + 24, py + 8);
+        ctx.lineTo(px + 30, py + 5);
+        ctx.lineTo(px + 30, py + 10);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Red menacing eye (showing through mask)
         ctx.fillStyle = '#ff4444';
         ctx.fillRect(px + 8, py + 8, 4, 4);
         
