@@ -422,6 +422,7 @@ const keys = {
 const bullets = [];
 let shootCooldown = 0;
 const SHOOT_COOLDOWN = 20; // Frames between shots
+let shootKeyReleased = true; // Must release S key between shots (no rapid fire)
 
 // ============================================
 // PLAYER (DINOSAUR)
@@ -463,13 +464,19 @@ const player = {
             this.canDoubleJump = true;
         }
         
-        // Handle shooting - cowboy draw style!
-        if (keys.shoot && shootCooldown <= 0) {
+        // Handle shooting - cowboy draw style! (must release key between shots)
+        if (keys.shoot && shootCooldown <= 0 && shootKeyReleased) {
             this.isShooting = true;
             this.shootAnimFrame = 15; // Animation frames
             shootCooldown = SHOOT_COOLDOWN;
+            shootKeyReleased = false; // Must release key before next shot
             spawnBullet();
             playShootSound();
+        }
+        
+        // Reset shoot key released flag when key is released
+        if (!keys.shoot) {
+            shootKeyReleased = true;
         }
         
         // Update shooting animation
@@ -2057,6 +2064,7 @@ function startGame() {
     passedBullets.clear();
     cactusIdCounter = 0;
     shootCooldown = 0;
+    shootKeyReleased = true;
     lastEnemySpawn = 0;
     lastPteroSpawn = 0;
     killCombo = 0;
