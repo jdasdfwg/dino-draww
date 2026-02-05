@@ -1869,12 +1869,9 @@ function triggerDeath() {
 
 function drawDeathFlash() {
     if (deathFlash > 0) {
-        // Skip flash on mobile to prevent UI glitches
-        if (!isMobile) {
-            const flashIntensity = deathFlash / 15;
-            ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity * 0.6})`;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
+        const flashIntensity = deathFlash / 15;
+        ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity * 0.6})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         deathFlash--;
     }
 }
@@ -1891,12 +1888,9 @@ function triggerCloseCallEffect() {
 
 function drawCloseCallFlash() {
     if (closeCallFlash > 0) {
-        // Skip flash on mobile to prevent UI glitches
-        if (!isMobile) {
-            const alpha = closeCallFlash / 8 * 0.4;
-            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
+        const alpha = closeCallFlash / 8 * 0.4;
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         closeCallFlash--;
     }
 }
