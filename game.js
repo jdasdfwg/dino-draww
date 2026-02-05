@@ -997,6 +997,235 @@ function drawEnemyBullets() {
     });
 }
 
+// ============================================
+// PTERODACTYLS (Flying thieves with money sacks)
+// ============================================
+const pterodactyls = [];
+let lastPteroSpawn = 0;
+const PTERO_SPAWN_INTERVAL = 400; // Less frequent than bandits
+
+function spawnPterodactyl() {
+    // Spawn at random height in the air (player must double jump or shoot)
+    const flyHeight = 120 + Math.random() * 80; // Between 120-200 pixels above ground
+    pterodactyls.push({
+        x: canvas.width + 50,
+        y: GROUND_Y - flyHeight,
+        width: 50,
+        height: 30,
+        speed: 4 + Math.random() * 2, // Faster than ground enemies
+        wingFrame: 0
+    });
+}
+
+function updatePterodactyls() {
+    for (let i = pterodactyls.length - 1; i >= 0; i--) {
+        const ptero = pterodactyls[i];
+        
+        // Fly left across the screen
+        ptero.x -= ptero.speed + gameSpeed * 0.5;
+        
+        // Animate wings
+        ptero.wingFrame += 0.2;
+        
+        // Slight wave motion
+        ptero.y += Math.sin(ptero.wingFrame) * 0.5;
+        
+        // Remove if off screen
+        if (ptero.x < -60) {
+            pterodactyls.splice(i, 1);
+        }
+    }
+}
+
+function drawPterodactyls() {
+    pterodactyls.forEach(ptero => {
+        const wingOffset = Math.sin(ptero.wingFrame * 2) * 8;
+        
+        // Body (brown)
+        ctx.fillStyle = '#8b6b4a';
+        
+        // Main body
+        ctx.beginPath();
+        ctx.ellipse(ptero.x + 25, ptero.y + 15, 20, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Head
+        ctx.beginPath();
+        ctx.ellipse(ptero.x + 5, ptero.y + 10, 8, 6, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Beak
+        ctx.fillStyle = '#6b5344';
+        ctx.beginPath();
+        ctx.moveTo(ptero.x - 5, ptero.y + 10);
+        ctx.lineTo(ptero.x - 15, ptero.y + 12);
+        ctx.lineTo(ptero.x - 5, ptero.y + 14);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Red menacing eye
+        ctx.fillStyle = '#ff4444';
+        ctx.beginPath();
+        ctx.arc(ptero.x + 2, ptero.y + 8, 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Wings
+        ctx.fillStyle = '#a08060';
+        // Left wing
+        ctx.beginPath();
+        ctx.moveTo(ptero.x + 15, ptero.y + 10);
+        ctx.lineTo(ptero.x + 5, ptero.y - 5 + wingOffset);
+        ctx.lineTo(ptero.x + 30, ptero.y + 5);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Right wing  
+        ctx.beginPath();
+        ctx.moveTo(ptero.x + 35, ptero.y + 10);
+        ctx.lineTo(ptero.x + 45, ptero.y - 5 - wingOffset);
+        ctx.lineTo(ptero.x + 50, ptero.y + 15);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Legs/claws
+        ctx.fillStyle = '#6b5344';
+        ctx.fillRect(ptero.x + 18, ptero.y + 22, 3, 8);
+        ctx.fillRect(ptero.x + 28, ptero.y + 22, 3, 8);
+        
+        // Money sack (being carried)
+        ctx.fillStyle = '#c9a86c';
+        ctx.beginPath();
+        ctx.ellipse(ptero.x + 23, ptero.y + 32, 8, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Dollar sign on sack
+        ctx.fillStyle = '#5a4a2a';
+        ctx.font = 'bold 8px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('$', ptero.x + 23, ptero.y + 35);
+    });
+}
+
+// Check if bullet hits pterodactyl
+function checkBulletPteroCollisions() {
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        for (let j = pterodactyls.length - 1; j >= 0; j--) {
+            const bullet = bullets[i];
+            const ptero = pterodactyls[j];
+            
+            if (bullet.x + bullet.width > ptero.x &&
+                bullet.x < ptero.x + ptero.width &&
+                bullet.y + bullet.height > ptero.y &&
+                bullet.y < ptero.y + ptero.height) {
+                
+                // Kill pterodactyl!
+                killCombo++;
+                comboTimer = COMBO_TIMEOUT;
+                const comboMultiplier = Math.min(killCombo, 5);
+                const points = 10 * comboMultiplier; // Pteros worth more!
+                score += points;
+                
+                // Death particles
+                for (let k = 0; k < 12; k++) {
+                    particles.push({
+                        x: ptero.x + ptero.width / 2,
+                        y: ptero.y + ptero.height / 2,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        life: 20,
+                        size: 3 + Math.random() * 3
+                    });
+                }
+                
+                // Bonus text
+                if (killCombo > 1) {
+                    createBonusText(ptero.x, ptero.y, `COMBO x${comboMultiplier}! +${points}`, '#c9a86c');
+                } else {
+                    createBonusText(ptero.x, ptero.y, `+${points}`, '#c9a86c');
+                }
+                
+                playComboKillSound(killCombo);
+                
+                bullets.splice(i, 1);
+                pterodactyls.splice(j, 1);
+                break;
+            }
+        }
+    }
+}
+
+// Check if player stomps pterodactyl
+function checkPteroStomp() {
+    if (player.velocityY <= 0) return; // Only when falling
+    
+    const playerHitbox = player.getHitbox();
+    const playerBottom = playerHitbox.y + playerHitbox.height;
+    const playerFeet = { x: playerHitbox.x, width: playerHitbox.width, y: playerBottom - 10, height: 15 };
+    
+    for (let i = pterodactyls.length - 1; i >= 0; i--) {
+        const ptero = pterodactyls[i];
+        const pteroTop = ptero.y;
+        
+        if (playerFeet.x + playerFeet.width > ptero.x &&
+            playerFeet.x < ptero.x + ptero.width &&
+            playerFeet.y < pteroTop + ptero.height * 0.6 &&
+            playerFeet.y + playerFeet.height > pteroTop) {
+            
+            // Stomp kill!
+            killCombo++;
+            comboTimer = COMBO_TIMEOUT;
+            const comboMultiplier = Math.min(killCombo, 5);
+            const points = 10 * comboMultiplier;
+            score += points;
+            
+            // Bounce the player
+            player.velocityY = JUMP_FORCE * 0.7;
+            
+            // Death particles
+            for (let k = 0; k < 10; k++) {
+                particles.push({
+                    x: ptero.x + ptero.width / 2,
+                    y: ptero.y + ptero.height / 2,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    life: 20,
+                    size: 3 + Math.random() * 2
+                });
+            }
+            
+            createBonusText(ptero.x, ptero.y - 20, `STOMP! +${points}`, '#c9a86c');
+            playComboKillSound(killCombo);
+            
+            pterodactyls.splice(i, 1);
+        }
+    }
+}
+
+// Check if player collides with pterodactyl (game over)
+function checkPlayerPteroCollision() {
+    const playerHitbox = player.getHitbox();
+    
+    for (const ptero of pterodactyls) {
+        const pteroHitbox = {
+            x: ptero.x + 5,
+            y: ptero.y + 5,
+            width: ptero.width - 10,
+            height: ptero.height - 5
+        };
+        
+        if (checkCollision(playerHitbox, pteroHitbox)) {
+            // Check if stomping (from above) - don't game over
+            const playerBottom = playerHitbox.y + playerHitbox.height;
+            const pteroTop = pteroHitbox.y;
+            if (player.velocityY > 0 && playerBottom < pteroTop + pteroHitbox.height * 0.4) {
+                continue; // This is a stomp, handled elsewhere
+            }
+            return true; // Game over
+        }
+    }
+    return false;
+}
+
 // Check if player bullet hits enemy
 function checkBulletEnemyCollisions() {
     for (let i = bullets.length - 1; i >= 0; i--) {
@@ -1676,12 +1905,40 @@ function manageSpawns() {
     }
     
     // Spawn enemy bandits after score hits 100
-    if (score >= 100 && frameCount - lastEnemySpawn > ENEMY_SPAWN_INTERVAL) {
-        // 60% chance to spawn enemy, max 3 on screen
-        if (Math.random() < 0.6 && enemies.length < 3) {
+    // After level 5, spawn more frequently and allow more on screen
+    let enemySpawnInterval = ENEMY_SPAWN_INTERVAL;
+    let maxEnemies = 3;
+    let spawnChance = 0.6;
+    
+    if (currentLevel >= 5) {
+        enemySpawnInterval = 120; // Faster spawns after level 5
+        maxEnemies = 5;
+        spawnChance = 0.75;
+    }
+    
+    if (score >= 100 && frameCount - lastEnemySpawn > enemySpawnInterval) {
+        if (Math.random() < spawnChance && enemies.length < maxEnemies) {
             spawnEnemy();
         }
         lastEnemySpawn = frameCount;
+    }
+    
+    // Spawn pterodactyls starting at level 3
+    if (currentLevel >= 3 && frameCount - lastPteroSpawn > PTERO_SPAWN_INTERVAL) {
+        // 40% chance to spawn, max 2 on screen
+        let pteroChance = 0.4;
+        let maxPteros = 2;
+        
+        // More pterodactyls at higher levels
+        if (currentLevel >= 6) {
+            pteroChance = 0.6;
+            maxPteros = 3;
+        }
+        
+        if (Math.random() < pteroChance && pterodactyls.length < maxPteros) {
+            spawnPterodactyl();
+        }
+        lastPteroSpawn = frameCount;
     }
 }
 
@@ -1708,6 +1965,7 @@ function gameLoop() {
         updateBullets();
         updateEnemies();
         updateEnemyBullets();
+        updatePterodactyls();
         updateCacti();
         updateBackground();
         updateParticles();
@@ -1716,9 +1974,11 @@ function gameLoop() {
         
         // Check bullet-enemy collisions
         checkBulletEnemyCollisions();
+        checkBulletPteroCollisions();
         
-        // Check for stomp kills (landing on enemy heads)
+        // Check for stomp kills (landing on enemy heads / pterodactyls)
         checkStompKill();
+        checkPteroStomp();
         
         // Check for bullet dodge bonus
         checkBulletNearMiss();
@@ -1731,8 +1991,8 @@ function gameLoop() {
             }
         }
         
-        // Check for collisions (player vs cactus/enemy bullets/enemies)
-        if (checkCollisions() || checkEnemyBulletPlayerCollision() || checkPlayerEnemyCollision()) {
+        // Check for collisions (player vs cactus/enemy bullets/enemies/pterodactyls)
+        if (checkCollisions() || checkEnemyBulletPlayerCollision() || checkPlayerEnemyCollision() || checkPlayerPteroCollision()) {
             gameOver();
         }
         
@@ -1746,6 +2006,7 @@ function gameLoop() {
     drawBackground();
     drawCacti();
     drawEnemies();
+    drawPterodactyls();
     drawBullets();
     drawEnemyBullets();
     player.draw();
@@ -1789,6 +2050,7 @@ function startGame() {
     bullets.length = 0;
     enemies.length = 0;
     enemyBullets.length = 0;
+    pterodactyls.length = 0;
     particles.length = 0;
     bonusTexts.length = 0;
     passedCacti.clear();
@@ -1796,6 +2058,7 @@ function startGame() {
     cactusIdCounter = 0;
     shootCooldown = 0;
     lastEnemySpawn = 0;
+    lastPteroSpawn = 0;
     killCombo = 0;
     comboTimer = 0;
     
