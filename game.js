@@ -16,6 +16,249 @@ const finalScoreEl = document.getElementById('finalScore');
 const gameContainer = document.getElementById('game-container');
 
 // ============================================
+// FIREBASE LEADERBOARD
+// ============================================
+const firebaseConfig = {
+    apiKey: "AIzaSyAzLOElssndIfehCs8X10Az61aO9SBl9Ak",
+    authDomain: "dino-runner-leaderboard.firebaseapp.com",
+    projectId: "dino-runner-leaderboard",
+    storageBucket: "dino-runner-leaderboard.firebasestorage.app",
+    messagingSenderId: "1042204481478",
+    appId: "1:1042204481478:web:815bfdd337f19c9134c4c7",
+    measurementId: "G-V1R7S29F5H"
+};
+
+// Initialize Firebase
+let db = null;
+try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+} catch (e) {
+    console.log('Firebase initialization error:', e);
+}
+
+// Get today's date string for daily leaderboard (PST timezone)
+function getTodayString() {
+    const now = new Date();
+    // Convert to PST/PDT (America/Los_Angeles)
+    const pstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    const year = pstDate.getFullYear();
+    const month = String(pstDate.getMonth() + 1).padStart(2, '0');
+    const day = String(pstDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`; // YYYY-MM-DD in PST
+}
+
+// Submit score to leaderboard (using 'draww-scores' collection for this game)
+async function submitScore(playerName, playerScore, isVictory = false) {
+    if (!db) return null;
+    
+    const scoreData = {
+        name: playerName.toUpperCase().substring(0, 3),
+        score: playerScore,
+        date: getTodayString(),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        victory: isVictory
+    };
+    
+    try {
+        const docRef = await db.collection('draww-scores').add(scoreData);
+        return docRef.id;
+    } catch (e) {
+        console.error('Error submitting score:', e);
+        return null;
+    }
+}
+
+// Get leaderboard (today or all-time)
+async function getLeaderboard(type = 'today', limit = 10) {
+    if (!db) return [];
+    
+    try {
+        // Get all scores sorted by score (works without index)
+        const snapshot = await db.collection('draww-scores')
+            .orderBy('score', 'desc')
+            .limit(100) // Get more to filter
+            .get();
+        
+        let scores = [];
+        snapshot.forEach(doc => {
+            scores.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Filter for today if needed
+        if (type === 'today') {
+            const today = getTodayString();
+            scores = scores.filter(s => s.date === today);
+        }
+        
+        // Return top entries
+        return scores.slice(0, limit);
+    } catch (e) {
+        console.error('Error getting leaderboard:', e);
+        return [];
+    }
+}
+
+// Get player's rank
+async function getPlayerRank(playerScore, type = 'today') {
+    if (!db) return null;
+    
+    try {
+        // Get all scores and count how many are higher
+        const snapshot = await db.collection('draww-scores')
+            .where('score', '>', playerScore)
+            .get();
+        
+        let higherScores = [];
+        snapshot.forEach(doc => {
+            higherScores.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Filter for today if needed
+        if (type === 'today') {
+            const today = getTodayString();
+            higherScores = higherScores.filter(s => s.date === today);
+        }
+        
+        return higherScores.length + 1;
+    } catch (e) {
+        console.error('Error getting rank:', e);
+        return null;
+    }
+}
+
+// Display leaderboard in UI
+async function displayLeaderboard(containerId, type = 'today', playerScore = null, playerName = null) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading">Loading...</div>';
+    
+    const scores = await getLeaderboard(type, 10);
+    
+    if (scores.length === 0) {
+        container.innerHTML = '<div class="no-scores">No scores yet. Be the first!</div>';
+        return;
+    }
+    
+    let html = '';
+    scores.forEach((entry, index) => {
+        const isPlayer = playerName && entry.name === playerName.toUpperCase() && entry.score === playerScore;
+        html += `
+            <div class="leaderboard-entry ${isPlayer ? 'highlight' : ''}">
+                <span class="leaderboard-rank">${index + 1}.</span>
+                <span class="leaderboard-name">${entry.name}</span>
+                <span class="leaderboard-score">${entry.score.toString().padStart(5, '0')}</span>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Initialize leaderboard UI event listeners
+function initLeaderboard() {
+    // Game Over screen
+    const nameInput = document.getElementById('name-input');
+    const submitBtn = document.getElementById('btn-submit-score');
+    const nameEntry = document.getElementById('name-entry');
+    const leaderboard = document.getElementById('leaderboard');
+    const tabToday = document.getElementById('tab-today');
+    const tabAlltime = document.getElementById('tab-alltime');
+    
+    // Victory screen
+    const victoryNameInput = document.getElementById('victory-name-input');
+    const victorySubmitBtn = document.getElementById('btn-victory-submit');
+    const victoryNameEntry = document.getElementById('victory-name-entry');
+    const victoryLeaderboard = document.getElementById('victory-leaderboard');
+    const victoryTabToday = document.getElementById('victory-tab-today');
+    const victoryTabAlltime = document.getElementById('victory-tab-alltime');
+    
+    // Load saved name
+    const savedName = localStorage.getItem('dinoDrawwPlayerName') || '';
+    if (nameInput) nameInput.value = savedName;
+    if (victoryNameInput) victoryNameInput.value = savedName;
+    
+    // Game Over submit button
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async () => {
+            const name = nameInput.value.trim();
+            if (name.length < 1) {
+                nameInput.focus();
+                return;
+            }
+            
+            localStorage.setItem('dinoDrawwPlayerName', name);
+            submitBtn.disabled = true;
+            submitBtn.textContent = '...';
+            
+            await submitScore(name, score, false);
+            
+            // Hide name entry, show submitted state
+            nameEntry.innerHTML = `<p class="submitted-msg">Submitted as ${name.toUpperCase()}</p>`;
+            
+            // Refresh leaderboard
+            displayLeaderboard('leaderboard-list', 'today', score, name);
+        });
+    }
+    
+    // Victory submit button
+    if (victorySubmitBtn) {
+        victorySubmitBtn.addEventListener('click', async () => {
+            const name = victoryNameInput.value.trim();
+            if (name.length < 1) {
+                victoryNameInput.focus();
+                return;
+            }
+            
+            localStorage.setItem('dinoDrawwPlayerName', name);
+            victorySubmitBtn.disabled = true;
+            victorySubmitBtn.textContent = '...';
+            
+            await submitScore(name, score, true);
+            
+            // Hide name entry, show submitted state
+            victoryNameEntry.innerHTML = `<p class="submitted-msg">Submitted as ${name.toUpperCase()}</p>`;
+            
+            // Refresh leaderboard
+            displayLeaderboard('victory-leaderboard-list', 'today', score, name);
+        });
+    }
+    
+    // Tab switching - Game Over
+    if (tabToday) {
+        tabToday.addEventListener('click', () => {
+            tabToday.classList.add('active');
+            tabAlltime.classList.remove('active');
+            displayLeaderboard('leaderboard-list', 'today');
+        });
+    }
+    if (tabAlltime) {
+        tabAlltime.addEventListener('click', () => {
+            tabAlltime.classList.add('active');
+            tabToday.classList.remove('active');
+            displayLeaderboard('leaderboard-list', 'alltime');
+        });
+    }
+    
+    // Tab switching - Victory
+    if (victoryTabToday) {
+        victoryTabToday.addEventListener('click', () => {
+            victoryTabToday.classList.add('active');
+            victoryTabAlltime.classList.remove('active');
+            displayLeaderboard('victory-leaderboard-list', 'today');
+        });
+    }
+    if (victoryTabAlltime) {
+        victoryTabAlltime.addEventListener('click', () => {
+            victoryTabAlltime.classList.add('active');
+            victoryTabToday.classList.remove('active');
+            displayLeaderboard('victory-leaderboard-list', 'alltime');
+        });
+    }
+}
+
+// ============================================
 // GAME CONSTANTS
 // ============================================
 const GROUND_Y = 325;           // Ground level (canvas is 375 tall)
@@ -1576,6 +1819,54 @@ function gameOver() {
     // Show game over screen
     finalScoreEl.textContent = score;
     gameOverScreen.classList.remove('hidden');
+    
+    // Reset name entry form
+    const nameEntry = document.getElementById('name-entry');
+    const savedName = localStorage.getItem('dinoDrawwPlayerName') || '';
+    if (nameEntry) {
+        nameEntry.innerHTML = `
+            <p>Enter your initials:</p>
+            <div class="name-input-container">
+                <input type="text" id="name-input" class="name-input" maxlength="3" placeholder="AAA" autocomplete="off" autocapitalize="characters" value="${savedName}">
+            </div>
+            <button id="btn-submit-score" class="btn-play btn-submit">SUBMIT</button>
+        `;
+        // Re-attach submit handler
+        const submitBtn = document.getElementById('btn-submit-score');
+        const nameInput = document.getElementById('name-input');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', async () => {
+                const name = nameInput.value.trim();
+                if (name.length < 1) {
+                    nameInput.focus();
+                    return;
+                }
+                localStorage.setItem('dinoDrawwPlayerName', name);
+                submitBtn.disabled = true;
+                submitBtn.textContent = '...';
+                await submitScore(name, score, false);
+                nameEntry.innerHTML = `<p class="submitted-msg">Submitted as ${name.toUpperCase()}</p>`;
+                displayLeaderboard('leaderboard-list', 'today', score, name);
+            });
+        }
+    }
+    
+    // Reset tabs to "today"
+    const tabToday = document.getElementById('tab-today');
+    const tabAlltime = document.getElementById('tab-alltime');
+    if (tabToday) tabToday.classList.add('active');
+    if (tabAlltime) tabAlltime.classList.remove('active');
+    
+    // Load leaderboard
+    displayLeaderboard('leaderboard-list', 'today');
+    
+    // Show rank
+    getPlayerRank(score, 'today').then(rank => {
+        const rankDisplay = document.getElementById('rank-display');
+        if (rankDisplay && rank) {
+            rankDisplay.textContent = `Today's Rank: #${rank}`;
+        }
+    });
 }
 
 function restartGame() {
@@ -1592,6 +1883,54 @@ function victory() {
         document.getElementById('victoryScore').textContent = score;
         victoryScreen.classList.remove('hidden');
     }
+    
+    // Reset name entry form
+    const victoryNameEntry = document.getElementById('victory-name-entry');
+    const savedName = localStorage.getItem('dinoDrawwPlayerName') || '';
+    if (victoryNameEntry) {
+        victoryNameEntry.innerHTML = `
+            <p>Enter your initials:</p>
+            <div class="name-input-container">
+                <input type="text" id="victory-name-input" class="name-input" maxlength="3" placeholder="AAA" autocomplete="off" autocapitalize="characters" value="${savedName}">
+            </div>
+            <button id="btn-victory-submit" class="btn-play btn-submit">SUBMIT</button>
+        `;
+        // Re-attach submit handler
+        const victorySubmitBtn = document.getElementById('btn-victory-submit');
+        const victoryNameInput = document.getElementById('victory-name-input');
+        if (victorySubmitBtn) {
+            victorySubmitBtn.addEventListener('click', async () => {
+                const name = victoryNameInput.value.trim();
+                if (name.length < 1) {
+                    victoryNameInput.focus();
+                    return;
+                }
+                localStorage.setItem('dinoDrawwPlayerName', name);
+                victorySubmitBtn.disabled = true;
+                victorySubmitBtn.textContent = '...';
+                await submitScore(name, score, true);
+                victoryNameEntry.innerHTML = `<p class="submitted-msg">Submitted as ${name.toUpperCase()}</p>`;
+                displayLeaderboard('victory-leaderboard-list', 'today', score, name);
+            });
+        }
+    }
+    
+    // Reset tabs to "today"
+    const victoryTabToday = document.getElementById('victory-tab-today');
+    const victoryTabAlltime = document.getElementById('victory-tab-alltime');
+    if (victoryTabToday) victoryTabToday.classList.add('active');
+    if (victoryTabAlltime) victoryTabAlltime.classList.remove('active');
+    
+    // Load leaderboard
+    displayLeaderboard('victory-leaderboard-list', 'today');
+    
+    // Show rank
+    getPlayerRank(score, 'today').then(rank => {
+        const victoryRankDisplay = document.getElementById('victory-rank-display');
+        if (victoryRankDisplay && rank) {
+            victoryRankDisplay.textContent = `Today's Rank: #${rank}`;
+        }
+    });
 }
 
 function continueFreePlay() {
@@ -1866,3 +2205,4 @@ function initTouchControls() {
 
 // Start the game
 init();
+initLeaderboard();

@@ -554,6 +554,13 @@ body {
     font-style: italic;
 }
 
+.submitted-msg {
+    color: #535353;
+    font-size: 12px;
+    font-weight: bold;
+    margin: 15px 0;
+}
+
 /* Screen shake effect */
 .shake {
     animation: shake 0.3s;
