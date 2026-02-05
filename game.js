@@ -1412,12 +1412,119 @@ function drawLandmarks() {
 }
 
 
+// Calculate sun position and sky colors based on level (1-10)
+function getSkyState() {
+    // Level 1 = dawn (0), Level 10 = dusk (1)
+    const progress = Math.min((currentLevel - 1) / 9, 1); // 0 to 1
+    
+    // Sun position: starts low-left, arcs to high middle, ends low-right
+    // Using a parabola for the arc
+    const sunX = 50 + progress * (canvas.width - 100); // Left to right
+    const sunArc = -4 * progress * (progress - 1); // Parabola: 0 at ends, 1 at middle
+    const sunY = GROUND_Y - 50 - sunArc * 200; // Higher in middle
+    
+    // Sun size gets slightly larger at dawn/dusk
+    const sunRadius = 30 + (1 - sunArc) * 10;
+    
+    // Sky colors transition from dawn to noon to dusk
+    let skyTop, skyBottom, sunColor, sunGlow;
+    
+    if (progress < 0.3) {
+        // Dawn - warm oranges and pinks
+        const t = progress / 0.3;
+        skyTop = lerpColor('#4a3f6b', '#87CEEB', t); // Purple-blue to sky blue
+        skyBottom = lerpColor('#ff9966', '#ffe4b5', t); // Orange to light
+        sunColor = '#ffcc44';
+        sunGlow = 'rgba(255, 150, 50, 0.3)';
+    } else if (progress < 0.7) {
+        // Midday - bright blue sky
+        skyTop = '#87CEEB';
+        skyBottom = '#e8f4f8';
+        sunColor = '#ffee88';
+        sunGlow = 'rgba(255, 255, 200, 0.2)';
+    } else {
+        // Dusk - warm oranges and purples
+        const t = (progress - 0.7) / 0.3;
+        skyTop = lerpColor('#87CEEB', '#4a3f6b', t); // Sky blue to purple
+        skyBottom = lerpColor('#ffe4b5', '#ff7744', t); // Light to orange
+        sunColor = lerpColor('#ffee88', '#ff6633', t);
+        sunGlow = `rgba(255, ${Math.floor(100 - t * 50)}, 50, ${0.3 + t * 0.2})`;
+    }
+    
+    return { sunX, sunY, sunRadius, skyTop, skyBottom, sunColor, sunGlow, progress };
+}
+
+// Linear interpolation between two hex colors
+function lerpColor(color1, color2, t) {
+    const c1 = hexToRgb(color1);
+    const c2 = hexToRgb(color2);
+    const r = Math.round(c1.r + (c2.r - c1.r) * t);
+    const g = Math.round(c1.g + (c2.g - c1.g) * t);
+    const b = Math.round(c1.b + (c2.b - c1.b) * t);
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (result) {
+        return {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        };
+    }
+    // Handle shorthand like #fff
+    const short = /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(hex);
+    if (short) {
+        return {
+            r: parseInt(short[1] + short[1], 16),
+            g: parseInt(short[2] + short[2], 16),
+            b: parseInt(short[3] + short[3], 16)
+        };
+    }
+    return { r: 255, g: 255, b: 255 };
+}
+
+function drawSky() {
+    const sky = getSkyState();
+    
+    // Draw sky gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+    gradient.addColorStop(0, sky.skyTop);
+    gradient.addColorStop(1, sky.skyBottom);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, GROUND_Y);
+    
+    // Draw sun glow
+    const glowGradient = ctx.createRadialGradient(sky.sunX, sky.sunY, sky.sunRadius, sky.sunX, sky.sunY, sky.sunRadius * 3);
+    glowGradient.addColorStop(0, sky.sunGlow);
+    glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = glowGradient;
+    ctx.fillRect(0, 0, canvas.width, GROUND_Y);
+    
+    // Draw sun
+    ctx.beginPath();
+    ctx.arc(sky.sunX, sky.sunY, sky.sunRadius, 0, Math.PI * 2);
+    ctx.fillStyle = sky.sunColor;
+    ctx.fill();
+}
+
 function drawBackground() {
+    // Draw sky and sun first (behind everything)
+    drawSky();
+    
     // Draw all landmarks behind everything
     drawLandmarks();
     
-    // Draw clouds
-    ctx.fillStyle = '#e0e0e0';
+    // Draw clouds (adjust color based on time of day)
+    const sky = getSkyState();
+    if (sky.progress < 0.3) {
+        ctx.fillStyle = '#f0d0b0'; // Warm clouds at dawn
+    } else if (sky.progress > 0.7) {
+        ctx.fillStyle = '#d0a090'; // Orange-tinted clouds at dusk
+    } else {
+        ctx.fillStyle = '#e0e0e0'; // Normal clouds
+    }
     clouds.forEach(cloud => {
         ctx.beginPath();
         ctx.arc(cloud.x, cloud.y, 15, 0, Math.PI * 2);
@@ -1426,12 +1533,17 @@ function drawBackground() {
         ctx.fill();
     });
     
+    // Draw ground (desert sand color that shifts with lighting)
+    const groundColor = sky.progress > 0.7 ? '#c9a882' : (sky.progress < 0.3 ? '#d4b896' : '#d4c4a8');
+    ctx.fillStyle = groundColor;
+    ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
+    
     // Draw ground line
     ctx.fillStyle = '#535353';
     ctx.fillRect(0, GROUND_Y, canvas.width, 2);
     
     // Draw ground texture
-    ctx.fillStyle = '#c0c0c0';
+    ctx.fillStyle = '#a09080';
     groundLines.forEach(line => {
         ctx.fillRect(line.x, GROUND_Y + 5, line.width, 2);
     });
