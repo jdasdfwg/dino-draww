@@ -1193,11 +1193,11 @@ function checkBulletPteroCollisions() {
                     });
                 }
                 
-                // Bonus text
+                // Bonus text (same blue as raptors for visibility)
                 if (killCombo > 1) {
-                    createBonusText(ptero.x, ptero.y, `COMBO x${comboMultiplier}! +${points}`, '#c9a86c');
+                    createBonusText(ptero.x, ptero.y, `COMBO x${comboMultiplier}! +${points}`, BANDIT_COLOR);
                 } else {
-                    createBonusText(ptero.x, ptero.y, `+${points}`, '#c9a86c');
+                    createBonusText(ptero.x, ptero.y, `+${points}`, BANDIT_COLOR);
                 }
                 
                 playComboKillSound(killCombo);
@@ -1249,7 +1249,7 @@ function checkPteroStomp() {
                 });
             }
             
-            createBonusText(ptero.x, ptero.y - 20, `STOMP! +${points}`, '#c9a86c');
+            createBonusText(ptero.x, ptero.y - 20, `STOMP! +${points}`, BANDIT_COLOR);
             playComboKillSound(killCombo);
             
             pterodactyls.splice(i, 1);
@@ -2006,18 +2006,18 @@ function manageSpawns() {
         lastEnemySpawn = frameCount;
     }
     
-    // Spawn pterodactyls starting at level 2
-    if (currentLevel >= 2 && frameCount - lastPteroSpawn > PTERO_SPAWN_INTERVAL) {
+    // Spawn pterodactyls starting at level 5
+    if (currentLevel >= 5 && frameCount - lastPteroSpawn > PTERO_SPAWN_INTERVAL) {
         // 60% chance to spawn, max 2 on screen
         let pteroChance = 0.6;
         let maxPteros = 2;
         
         // More pterodactyls at higher levels
-        if (currentLevel >= 4) {
+        if (currentLevel >= 7) {
             pteroChance = 0.75;
             maxPteros = 3;
         }
-        if (currentLevel >= 7) {
+        if (currentLevel >= 9) {
             pteroChance = 0.85;
             maxPteros = 4;
         }
