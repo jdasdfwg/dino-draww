@@ -119,15 +119,6 @@ function playComboKillSound(comboCount) {
     }
 }
 
-// NEW BEST celebration sound!
-function playNewBestSound() {
-    if (isMuted || !audioCtx) return;
-    const notes = [659, 784, 880, 1047, 1175]; // E5, G5, A5, C6, D6 - triumphant!
-    notes.forEach((freq, i) => {
-        setTimeout(() => playTone(freq, 0.12, 'square', 0.2), i * 80);
-    });
-}
-
 function playLevelUpSound() {
     if (isMuted || !audioCtx) return;
     const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
@@ -1193,9 +1184,6 @@ function drawBackground() {
         ctx.fill();
     });
     
-    // Draw "Beat Your Best" high score line
-    drawHighScoreLine();
-    
     // Draw ground line
     ctx.fillStyle = '#535353';
     ctx.fillRect(0, GROUND_Y, canvas.width, 2);
@@ -1206,85 +1194,6 @@ function drawBackground() {
         ctx.fillRect(line.x, GROUND_Y + 5, line.width, 2);
     });
     
-    // Draw speed indicator
-    drawSpeedIndicator();
-}
-
-// "Beat Your Best" line - shows where your high score is
-let highScoreLineX = -100; // Off screen initially
-
-function drawHighScoreLine() {
-    if (gameState !== 'playing' || score >= highScore || highScore === 0) return;
-    
-    // Calculate where the high score line should be based on remaining points
-    const pointsToGo = highScore - score;
-    // Assume ~2 points per frame, speed affects how fast we approach
-    const framesAway = pointsToGo / (gameSpeed * 0.1);
-    highScoreLineX = Math.min(canvas.width - 50, player.x + framesAway * 2);
-    
-    if (highScoreLineX > player.x && highScoreLineX < canvas.width) {
-        // Draw the line
-        ctx.strokeStyle = '#888';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.moveTo(highScoreLineX, 50);
-        ctx.lineTo(highScoreLineX, GROUND_Y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        
-        // Draw "BEST" label
-        ctx.fillStyle = '#888';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('BEST', highScoreLineX, 45);
-        ctx.fillText(highScore, highScoreLineX, 58);
-    }
-}
-
-// Speed indicator - gets more intense as speed increases
-function drawSpeedIndicator() {
-    if (gameState !== 'playing') return;
-    
-    const speedPercent = (gameSpeed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
-    const barWidth = 60;
-    const barHeight = 8;
-    const x = canvas.width - barWidth - 10;
-    const y = 50;
-    
-    // Background bar
-    ctx.fillStyle = '#ddd';
-    ctx.fillRect(x, y, barWidth, barHeight);
-    
-    // Speed fill - gets darker as speed increases
-    const greyValue = Math.floor(180 - speedPercent * 130); // 180 (light) to 50 (dark)
-    ctx.fillStyle = `rgb(${greyValue}, ${greyValue}, ${greyValue})`;
-    ctx.fillRect(x, y, barWidth * speedPercent, barHeight);
-    
-    // Border
-    ctx.strokeStyle = '#535353';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x, y, barWidth, barHeight);
-    
-    // Label
-    ctx.fillStyle = '#535353';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'right';
-    ctx.fillText('SPEED', x - 5, y + 7);
-    
-    // Speed lines effect when going fast
-    if (speedPercent > 0.5) {
-        const lineAlpha = (speedPercent - 0.5) * 0.3;
-        ctx.strokeStyle = `rgba(83, 83, 83, ${lineAlpha})`;
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 3; i++) {
-            const lineY = 100 + i * 80;
-            ctx.beginPath();
-            ctx.moveTo(0, lineY);
-            ctx.lineTo(30 + speedPercent * 50, lineY);
-            ctx.stroke();
-        }
-    }
 }
 
 // ============================================
@@ -1458,17 +1367,9 @@ function updateScore() {
     
     // Update high score if beaten
     if (score > highScore) {
-        const justBeatIt = highScore > 0 && score === highScore + 1;
         highScore = score;
         highScoreEl.textContent = highScore.toString().padStart(5, '0');
         localStorage.setItem('dinoHighScore', highScore);
-        
-        // Celebrate beating your best!
-        if (justBeatIt) {
-            createBonusText(player.x + 30, player.y - player.height - 30, 'NEW BEST!', '#333');
-            triggerCloseCallEffect();
-            playNewBestSound();
-        }
     }
 }
 
