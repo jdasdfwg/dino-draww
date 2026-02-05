@@ -1843,8 +1843,8 @@ function triggerDeath() {
     if (gameState === 'dying') return; // Already dying
     
     gameState = 'dying';
-    deathTimer = 90; // 1.5 seconds freeze at 60fps
-    deathFlash = 20; // Flash frames
+    deathTimer = 60; // 1 second freeze at 60fps
+    deathFlash = 15; // Flash frames
     
     // Big dramatic screen shake
     gameContainer.classList.add('death-shake');
@@ -1855,13 +1855,9 @@ function triggerDeath() {
 
 function drawDeathFlash() {
     if (deathFlash > 0) {
-        // Flashing red/white effect
-        const flashIntensity = deathFlash / 20;
-        if (deathFlash % 4 < 2) {
-            ctx.fillStyle = `rgba(255, 0, 0, ${flashIntensity * 0.4})`;
-        } else {
-            ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity * 0.5})`;
-        }
+        // White flash effect
+        const flashIntensity = deathFlash / 15;
+        ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity * 0.6})`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         deathFlash--;
     }
