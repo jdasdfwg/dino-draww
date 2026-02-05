@@ -276,7 +276,8 @@ const BANDIT_COLOR_DARK = '#4a6b7a'; // Darker blue for details
 // ============================================
 // GAME STATE
 // ============================================
-let gameState = 'start'; // 'start', 'playing', 'paused', 'gameover', 'victory'
+let gameState = 'start'; // 'start', 'playing', 'paused', 'dying', 'gameover', 'victory'
+let deathTimer = 0; // Timer for death freeze frame
 let score = 0;
 let highScore = parseInt(localStorage.getItem('dinoHighScore')) || 0;
 let gameSpeed = BASE_SPEED;
@@ -1835,6 +1836,37 @@ function screenShake() {
     setTimeout(() => gameContainer.classList.remove('shake'), 300);
 }
 
+// Death freeze frame effect (like Super Mario Bros)
+let deathFlash = 0;
+
+function triggerDeath() {
+    if (gameState === 'dying') return; // Already dying
+    
+    gameState = 'dying';
+    deathTimer = 90; // 1.5 seconds freeze at 60fps
+    deathFlash = 20; // Flash frames
+    
+    // Big dramatic screen shake
+    gameContainer.classList.add('death-shake');
+    
+    // Play death sound
+    playGameOverSound();
+}
+
+function drawDeathFlash() {
+    if (deathFlash > 0) {
+        // Flashing red/white effect
+        const flashIntensity = deathFlash / 20;
+        if (deathFlash % 4 < 2) {
+            ctx.fillStyle = `rgba(255, 0, 0, ${flashIntensity * 0.4})`;
+        } else {
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity * 0.5})`;
+        }
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        deathFlash--;
+    }
+}
+
 // Close call screen flash and mini shake
 let closeCallFlash = 0;
 
@@ -2048,7 +2080,7 @@ function gameLoop() {
         
         // Check for collisions (player vs cactus/enemy bullets/enemies/pterodactyls)
         if (checkCollisions() || checkEnemyBulletPlayerCollision() || checkPlayerEnemyCollision() || checkPlayerPteroCollision()) {
-            gameOver();
+            triggerDeath(); // Start death sequence instead of immediate game over
         }
         
         // Update score every 5 frames
@@ -2069,6 +2101,17 @@ function gameLoop() {
     drawBonusTexts();
     drawLevelUpAnimation();
     drawCloseCallFlash(); // Screen flash on close calls
+    
+    // Handle dying state (freeze frame with countdown)
+    if (gameState === 'dying') {
+        drawDeathFlash();
+        
+        deathTimer--;
+        if (deathTimer <= 0) {
+            gameContainer.classList.remove('death-shake');
+            gameOver(); // Transition to actual game over screen
+        }
+    }
     
     // Continue game loop
     requestAnimationFrame(gameLoop);
@@ -2137,8 +2180,7 @@ function startGame() {
 
 function gameOver() {
     gameState = 'gameover';
-    screenShake();
-    playGameOverSound();
+    // Sound and shake already played in triggerDeath()
     
     // Show game over screen
     finalScoreEl.textContent = score;
