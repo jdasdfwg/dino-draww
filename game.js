@@ -19,13 +19,12 @@ const gameContainer = document.getElementById('game-container');
 // FIREBASE LEADERBOARD
 // ============================================
 const firebaseConfig = {
-    apiKey: "AIzaSyAzLOElssndIfehCs8X10Az61aO9SBl9Ak",
-    authDomain: "dino-runner-leaderboard.firebaseapp.com",
-    projectId: "dino-runner-leaderboard",
-    storageBucket: "dino-runner-leaderboard.firebasestorage.app",
-    messagingSenderId: "1042204481478",
-    appId: "1:1042204481478:web:815bfdd337f19c9134c4c7",
-    measurementId: "G-V1R7S29F5H"
+    apiKey: "AIzaSyC1hRXnxfsZx2Cm8dZU-wgfPCZWDeaNU5M",
+    authDomain: "dino-draww.firebaseapp.com",
+    projectId: "dino-draww",
+    storageBucket: "dino-draww.firebasestorage.app",
+    messagingSenderId: "949718341915",
+    appId: "1:949718341915:web:50c9c26cc73ab7c653dbbe"
 };
 
 // Initialize Firebase
@@ -48,7 +47,7 @@ function getTodayString() {
     return `${year}-${month}-${day}`; // YYYY-MM-DD in PST
 }
 
-// Submit score to leaderboard (using 'draww-scores' collection for this game)
+// Submit score to leaderboard
 async function submitScore(playerName, playerScore, isVictory = false) {
     if (!db) return null;
     
@@ -61,7 +60,7 @@ async function submitScore(playerName, playerScore, isVictory = false) {
     };
     
     try {
-        const docRef = await db.collection('draww-scores').add(scoreData);
+        const docRef = await db.collection('scores').add(scoreData);
         return docRef.id;
     } catch (e) {
         console.error('Error submitting score:', e);
@@ -75,7 +74,7 @@ async function getLeaderboard(type = 'today', limit = 10) {
     
     try {
         // Get all scores sorted by score (works without index)
-        const snapshot = await db.collection('draww-scores')
+        const snapshot = await db.collection('scores')
             .orderBy('score', 'desc')
             .limit(100) // Get more to filter
             .get();
@@ -105,7 +104,7 @@ async function getPlayerRank(playerScore, type = 'today') {
     
     try {
         // Get all scores and count how many are higher
-        const snapshot = await db.collection('draww-scores')
+        const snapshot = await db.collection('scores')
             .where('score', '>', playerScore)
             .get();
         
