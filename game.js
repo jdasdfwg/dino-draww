@@ -2214,8 +2214,8 @@ function drawTitleDino() {
     if (!titleCanvas) return;
     
     const tctx = titleCanvas.getContext('2d');
-    const x = 10;
-    const y = 55;
+    const x = 5;
+    const y = 45;
     
     // Cowboy hat (brown)
     tctx.fillStyle = '#6b5344';
