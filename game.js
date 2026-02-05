@@ -7,6 +7,9 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Mobile detection (disable flashes on mobile to prevent UI glitches)
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
 // UI Elements
 const startScreen = document.getElementById('start-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
@@ -1866,10 +1869,12 @@ function triggerDeath() {
 
 function drawDeathFlash() {
     if (deathFlash > 0) {
-        // White flash effect
-        const flashIntensity = deathFlash / 15;
-        ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity * 0.6})`;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Skip flash on mobile to prevent UI glitches
+        if (!isMobile) {
+            const flashIntensity = deathFlash / 15;
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity * 0.6})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
         deathFlash--;
     }
 }
@@ -1886,9 +1891,12 @@ function triggerCloseCallEffect() {
 
 function drawCloseCallFlash() {
     if (closeCallFlash > 0) {
-        const alpha = closeCallFlash / 8 * 0.4;
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Skip flash on mobile to prevent UI glitches
+        if (!isMobile) {
+            const alpha = closeCallFlash / 8 * 0.4;
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
         closeCallFlash--;
     }
 }

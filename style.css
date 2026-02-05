@@ -842,6 +842,17 @@ body {
     .touch-btn-shoot {
         right: 20px;
         bottom: calc(20px + env(safe-area-inset-bottom));
+        padding: 12px 15px;
+    }
+    
+    .touch-btn-shoot svg {
+        display: block;
+    }
+    
+    .touch-btn-shoot:active svg rect,
+    .touch-btn-shoot:active svg circle,
+    .touch-btn-shoot:active svg path {
+        fill: #888;
     }
     
     /* ============================================

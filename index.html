@@ -124,7 +124,21 @@
         <!-- Mobile touch controls (shown only on small screens via CSS) -->
         <div id="touch-controls" class="touch-controls">
             <button id="btn-jump" class="touch-btn touch-btn-jump" aria-label="Jump">▲</button>
-            <button id="btn-shoot" class="touch-btn touch-btn-shoot" aria-label="Shoot">🔫</button>
+            <button id="btn-shoot" class="touch-btn touch-btn-shoot" aria-label="Shoot">
+                <svg viewBox="0 0 50 30" width="50" height="30">
+                    <!-- Revolver barrel -->
+                    <rect x="25" y="10" width="24" height="6" fill="#444" rx="1"/>
+                    <!-- Front sight -->
+                    <rect x="47" y="8" width="2" height="4" fill="#333"/>
+                    <!-- Cylinder -->
+                    <circle cx="22" cy="13" r="8" fill="#555"/>
+                    <circle cx="22" cy="13" r="5" fill="#444"/>
+                    <!-- Grip -->
+                    <path d="M14 16 L18 16 L20 28 L12 28 Z" fill="#6b5344"/>
+                    <!-- Trigger guard -->
+                    <path d="M16 16 Q10 20 16 26" stroke="#444" fill="none" stroke-width="2"/>
+                </svg>
+            </button>
         </div>
     </div>
     <script src="game.js"></script>
