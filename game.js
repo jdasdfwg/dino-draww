@@ -267,6 +267,12 @@ const BASE_SPEED = 7;           // Starting game speed (faster start!)
 const MAX_SPEED = 18;           // Maximum game speed
 const SPEED_INCREMENT = 0.002;  // Speed increase per frame (faster ramp up)
 
+// Character colors
+const DINO_COLOR = '#7fbc8c';       // Pastel green for our hero
+const DINO_COLOR_DARK = '#5a9466';  // Darker green for details
+const BANDIT_COLOR = '#6b8fa3';     // Dusty blue for bandits
+const BANDIT_COLOR_DARK = '#4a6b7a'; // Darker blue for details
+
 // ============================================
 // GAME STATE
 // ============================================
@@ -275,11 +281,6 @@ let score = 0;
 let highScore = parseInt(localStorage.getItem('dinoHighScore')) || 0;
 let gameSpeed = BASE_SPEED;
 let frameCount = 0;
-
-// Era system based on levels
-// Level 1: Normal (desert)
-// Level 2+: Volcano Era (volcano rises in background)
-let currentEra = 'normal'; // 'normal', 'volcano'
 
 // Level system
 let currentLevel = 1;
@@ -493,13 +494,13 @@ const player = {
     },
     
     draw() {
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = DINO_COLOR;
         
         // Draw dinosaur body
         const drawY = this.y - this.height;
         
         // === COWBOY HAT with curled brim and pinched crown ===
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = '#6b5344'; // Brown hat
         
         // Hat crown (top part) - with curved inward top like a real cowboy hat
         ctx.beginPath();
@@ -512,17 +513,16 @@ const player = {
         ctx.fill();
         
         // Crown crease detail (the indentation on top)
-        ctx.fillStyle = '#888';
+        ctx.strokeStyle = '#8b7355';
         ctx.beginPath();
         ctx.moveTo(this.x + 16, drawY - 17);
         ctx.quadraticCurveTo(this.x + 22, drawY - 14, this.x + 28, drawY - 17);
         ctx.stroke();
-        ctx.fillStyle = '#535353';
         
         // Hat band
-        ctx.fillStyle = '#888';
+        ctx.fillStyle = '#c9a86c'; // Gold band
         ctx.fillRect(this.x + 12, drawY - 10, 20, 3);
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = '#6b5344';
         
         // Hat brim with curled up ends
         ctx.beginPath();
@@ -535,7 +535,8 @@ const player = {
         ctx.lineTo(this.x + 2, drawY - 5);           // Back to start
         ctx.fill();
         
-        // Body
+        // Body (green dino!)
+        ctx.fillStyle = DINO_COLOR;
         ctx.fillRect(this.x, drawY + 15, 30, 35);
         
         // Head
@@ -545,7 +546,7 @@ const player = {
         ctx.fillStyle = '#fff';
         ctx.fillRect(this.x + 32, drawY + 5, 5, 5);
         
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = DINO_COLOR;
         
         // Legs (animated)
         const legOffset = Math.sin(frameCount * 0.3) * 5;
@@ -571,7 +572,7 @@ const player = {
         const gunX = this.x + 38;
         const gunY = dinoY + 14;
         
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = DINO_COLOR;
         
         // Arm extended forward
         ctx.fillRect(this.x + 25, dinoY + 18, 15, 6);
@@ -588,11 +589,11 @@ const player = {
         ctx.fill();
         
         // Grip detail lines
-        ctx.fillStyle = '#888';
+        ctx.fillStyle = '#6b5344';
         ctx.fillRect(gunX + 2, gunY + 12, 5, 1);
         ctx.fillRect(gunX + 1, gunY + 15, 5, 1);
         
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = '#444';
         
         // Frame/body of revolver
         ctx.fillRect(gunX, gunY + 2, 14, 7);
@@ -603,11 +604,11 @@ const player = {
         ctx.fill();
         
         // Cylinder detail - bullet chambers hint
-        ctx.fillStyle = '#888';
+        ctx.fillStyle = '#666';
         ctx.beginPath();
         ctx.arc(gunX + 8, gunY + 5, 3, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = '#444';
         ctx.beginPath();
         ctx.arc(gunX + 8, gunY + 5, 2, 0, Math.PI * 2);
         ctx.fill();
@@ -616,9 +617,9 @@ const player = {
         ctx.fillRect(gunX + 12, gunY + 3, 18, 4);
         
         // Barrel top ridge
-        ctx.fillStyle = '#888';
+        ctx.fillStyle = '#666';
         ctx.fillRect(gunX + 12, gunY + 2, 18, 1);
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = '#444';
         
         // Front sight
         ctx.fillRect(gunX + 28, gunY, 2, 3);
@@ -850,7 +851,7 @@ function drawEnemies() {
         const drawY = enemy.y - enemy.height;
         const facingLeft = enemy.direction === -1;
         
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = BANDIT_COLOR;
         
         // === RAPTOR BANDIT ===
         
@@ -896,7 +897,7 @@ function drawEnemies() {
         ctx.fill();
         
         // Raptor teeth (jagged line on jaw)
-        ctx.fillStyle = '#888';
+        ctx.fillStyle = '#9ab8c9';
         if (facingLeft) {
             for (let t = 0; t < 4; t++) {
                 ctx.fillRect(enemy.x - 15 + t * 5, drawY + 12, 2, 3);
@@ -916,14 +917,14 @@ function drawEnemies() {
         }
         
         // Menacing eye in mask
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#ff6666'; // Red menacing eyes
         if (facingLeft) {
             ctx.fillRect(enemy.x + 2, drawY + 5, 4, 4);
         } else {
             ctx.fillRect(enemy.x + 19, drawY + 5, 4, 4);
         }
         
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = BANDIT_COLOR;
         
         // Raptor arms (small, bent forward)
         if (facingLeft) {
@@ -945,11 +946,11 @@ function drawEnemies() {
         ctx.fillRect(enemy.x + 6, drawY + 39, 5, 8 + legOffset);
         ctx.fillRect(enemy.x + 16, drawY + 39, 5, 8 - legOffset);
         // Raptor sickle claw
-        ctx.fillStyle = '#333';
+        ctx.fillStyle = BANDIT_COLOR_DARK;
         ctx.fillRect(enemy.x + 4, drawY + 44 + legOffset, 3, 4);
         ctx.fillRect(enemy.x + 18, drawY + 44 - legOffset, 3, 4);
         
-        ctx.fillStyle = '#535353';
+        ctx.fillStyle = BANDIT_COLOR;
         
         // Long stiff tail (for balance)
         ctx.beginPath();
@@ -1267,22 +1268,6 @@ function drawCactus(cactus) {
 const clouds = [];
 const groundLines = [];
 
-// Era landmarks - volcano rises after level 2
-const LANDMARK_X = 700;
-
-// Volcano (Level 2+)
-const volcano = {
-    x: LANDMARK_X,
-    baseY: GROUND_Y,
-    width: 80,
-    height: 100,
-    currentHeight: 0,
-    targetHeight: 0,
-    eruptionParticles: [],
-    lavaGlow: 0
-};
-
-
 function initBackground() {
     // Initialize clouds
     for (let i = 0; i < 5; i++) {
@@ -1319,96 +1304,10 @@ function updateBackground() {
             line.x = canvas.width + Math.random() * 100;
         }
     });
-    
-    // Update all landmarks (they rise/fall based on era)
-    updateLandmarks();
-}
-
-function updateLandmarks() {
-    const riseSpeed = 0.8;
-    const fallSpeed = 1.2;
-    
-    // Update volcano height
-    if (volcano.currentHeight < volcano.targetHeight) {
-        volcano.currentHeight = Math.min(volcano.targetHeight, volcano.currentHeight + riseSpeed);
-    } else if (volcano.currentHeight > volcano.targetHeight) {
-        volcano.currentHeight = Math.max(volcano.targetHeight, volcano.currentHeight - fallSpeed);
-    }
-    
-    // Volcano eruption particles (only when visible)
-    if (volcano.currentHeight > volcano.height * 0.8) {
-        volcano.lavaGlow = 0.5 + Math.sin(frameCount * 0.1) * 0.3;
-        
-        if (Math.random() < 0.15) {
-            volcano.eruptionParticles.push({
-                x: volcano.x + volcano.width / 2 + (Math.random() - 0.5) * 20,
-                y: volcano.baseY - volcano.currentHeight,
-                vx: (Math.random() - 0.5) * 3,
-                vy: -3 - Math.random() * 4,
-                life: 40 + Math.random() * 30,
-                maxLife: 70,
-                size: 4 + Math.random() * 6,
-                type: Math.random() < 0.7 ? 'fire' : 'rock'
-            });
-        }
-    }
-    
-    // Update eruption particles
-    for (let i = volcano.eruptionParticles.length - 1; i >= 0; i--) {
-        const p = volcano.eruptionParticles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.15;
-        p.life--;
-        if (p.life <= 0 || p.y > GROUND_Y) {
-            volcano.eruptionParticles.splice(i, 1);
-        }
-    }
-}
-
-
-function drawVolcano() {
-    if (volcano.currentHeight <= 0) return;
-    
-    // Draw volcano mountain
-    ctx.fillStyle = '#3d3d3d';
-    ctx.beginPath();
-    ctx.moveTo(volcano.x, volcano.baseY);
-    ctx.lineTo(volcano.x + volcano.width / 2 - 15, volcano.baseY - volcano.currentHeight);
-    ctx.lineTo(volcano.x + volcano.width / 2 + 15, volcano.baseY - volcano.currentHeight);
-    ctx.lineTo(volcano.x + volcano.width, volcano.baseY);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Draw crater glow
-    if (volcano.currentHeight >= volcano.height * 0.8) {
-        const gradient = ctx.createRadialGradient(
-            volcano.x + volcano.width / 2, volcano.baseY - volcano.currentHeight + 5, 5,
-            volcano.x + volcano.width / 2, volcano.baseY - volcano.currentHeight + 5, 25
-        );
-        gradient.addColorStop(0, `rgba(255, 255, 255, ${volcano.lavaGlow})`);
-        gradient.addColorStop(0.5, `rgba(200, 200, 200, ${volcano.lavaGlow * 0.5})`);
-        gradient.addColorStop(1, 'rgba(150, 150, 150, 0)');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(volcano.x + volcano.width / 2, volcano.baseY - volcano.currentHeight + 5, 25, 0, Math.PI * 2);
-        ctx.fill();
-    }
-    
-    // Draw eruption particles
-    volcano.eruptionParticles.forEach(p => {
-        const alpha = p.life / p.maxLife;
-        const grey = p.type === 'fire' ? 180 + Math.floor(Math.random() * 50) : 60;
-        ctx.fillStyle = `rgba(${grey}, ${grey}, ${grey}, ${alpha})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
-        ctx.fill();
-    });
 }
 
 function drawLandmarks() {
-    // Only volcano in the background (western desert theme)
-    drawVolcano();
+    // Simple western desert - no landmarks needed, just sky and ground
 }
 
 
@@ -1707,7 +1606,6 @@ function updateScore() {
         createBonusText(canvas.width / 2, 80, 'LEVEL ' + currentLevel, '#222');
         playLevelUpSound();
         updateLevelDisplay();
-        updateEra();
     }
     
     // Check for victory (after completing level 10)
@@ -1738,21 +1636,6 @@ function updateLevelDisplay() {
     }
 }
 
-function updateEra() {
-    // Determine era based on current level
-    // Level 1: Normal desert, Level 2+: Volcano rises
-    let newEra = 'normal';
-    if (currentLevel >= 2) {
-        newEra = 'volcano';
-    }
-    
-    if (newEra !== currentEra) {
-        currentEra = newEra;
-        
-        // Volcano rises after level 2 and stays up
-        volcano.targetHeight = (currentLevel >= 2) ? volcano.height : 0;
-    }
-}
 
 // ============================================
 // SPAWN MANAGEMENT
@@ -1879,7 +1762,6 @@ function startGame() {
     gameSpeed = BASE_SPEED;
     frameCount = 0;
     lastCactusSpawn = 0;
-    currentEra = 'normal';
     currentLevel = 1;
     freePlayMode = false;
     levelUpAnimation = 0;
@@ -1898,12 +1780,6 @@ function startGame() {
     lastEnemySpawn = 0;
     killCombo = 0;
     comboTimer = 0;
-    
-    // Reset volcano
-    volcano.eruptionParticles.length = 0;
-    volcano.currentHeight = 0;
-    volcano.targetHeight = 0;
-    volcano.lavaGlow = 0;
     
     // Reset player
     player.reset();
