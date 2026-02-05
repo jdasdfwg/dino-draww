@@ -146,11 +146,23 @@ body {
     text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
 }
 
+.title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
 .start-content h1 {
     font-size: 32px;
-    margin-bottom: 5px;
+    margin: 0;
     letter-spacing: 4px;
     color: #fff;
+}
+
+#titleDino {
+    margin-top: -10px;
 }
 
 .subtitle {
@@ -654,10 +666,20 @@ body {
     }
     
     /* Compact start screen for mobile */
+    .title-row {
+        gap: 5px;
+    }
+    
     .start-content h1 {
         font-size: 22px;
         letter-spacing: 2px;
-        margin-bottom: 3px;
+        margin: 0;
+    }
+    
+    #titleDino {
+        width: 50px;
+        height: 57px;
+        margin-top: -5px;
     }
     
     .subtitle {

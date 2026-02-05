@@ -2208,6 +2208,76 @@ function initTouchControls() {
     }
 }
 
+// Draw the title screen dino with gun
+function drawTitleDino() {
+    const titleCanvas = document.getElementById('titleDino');
+    if (!titleCanvas) return;
+    
+    const tctx = titleCanvas.getContext('2d');
+    const x = 10;
+    const y = 55;
+    
+    // Cowboy hat (brown)
+    tctx.fillStyle = '#6b5344';
+    // Hat crown
+    tctx.beginPath();
+    tctx.moveTo(x + 12, y - 8);
+    tctx.lineTo(x + 12, y - 16);
+    tctx.quadraticCurveTo(x + 14, y - 22, x + 22, y - 18);
+    tctx.quadraticCurveTo(x + 30, y - 22, x + 32, y - 16);
+    tctx.lineTo(x + 32, y - 8);
+    tctx.closePath();
+    tctx.fill();
+    
+    // Hat band
+    tctx.fillStyle = '#c9a86c';
+    tctx.fillRect(x + 12, y - 10, 20, 3);
+    
+    // Hat brim
+    tctx.fillStyle = '#6b5344';
+    tctx.beginPath();
+    tctx.moveTo(x + 2, y - 5);
+    tctx.quadraticCurveTo(x + 5, y - 12, x + 10, y - 7);
+    tctx.lineTo(x + 34, y - 7);
+    tctx.quadraticCurveTo(x + 39, y - 12, x + 42, y - 5);
+    tctx.lineTo(x + 40, y - 3);
+    tctx.lineTo(x + 4, y - 3);
+    tctx.closePath();
+    tctx.fill();
+    
+    // Green dino body
+    tctx.fillStyle = '#7fbc8c';
+    tctx.fillRect(x, y + 15, 30, 35);
+    tctx.fillRect(x + 15, y, 25, 20); // Head
+    
+    // Eye
+    tctx.fillStyle = '#fff';
+    tctx.fillRect(x + 32, y + 5, 5, 5);
+    
+    // Legs
+    tctx.fillStyle = '#7fbc8c';
+    tctx.fillRect(x + 5, y + 45, 8, 12);
+    tctx.fillRect(x + 18, y + 45, 8, 12);
+    
+    // Tail
+    tctx.fillRect(x - 15, y + 20, 18, 10);
+    
+    // Arm with gun
+    tctx.fillRect(x + 25, y + 18, 15, 6);
+    
+    // Gun
+    const gunX = x + 38;
+    const gunY = y + 14;
+    tctx.fillStyle = '#444';
+    tctx.fillRect(gunX, gunY + 2, 14, 7);
+    tctx.beginPath();
+    tctx.arc(gunX + 8, gunY + 5, 5, 0, Math.PI * 2);
+    tctx.fill();
+    tctx.fillRect(gunX + 12, gunY + 3, 18, 4);
+    tctx.fillRect(gunX + 28, gunY, 2, 3);
+}
+
 // Start the game
 init();
 initLeaderboard();
+drawTitleDino();
