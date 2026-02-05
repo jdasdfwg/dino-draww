@@ -174,7 +174,7 @@ function initLeaderboard() {
     const victoryTabAlltime = document.getElementById('victory-tab-alltime');
     
     // Load saved name
-    const savedName = localStorage.getItem('dinoDrawwPlayerName') || '';
+    const savedName = localStorage.getItem('dinoDeputyPlayerName') || '';
     if (nameInput) nameInput.value = savedName;
     if (victoryNameInput) victoryNameInput.value = savedName;
     
@@ -187,7 +187,7 @@ function initLeaderboard() {
                 return;
             }
             
-            localStorage.setItem('dinoDrawwPlayerName', name);
+            localStorage.setItem('dinoDeputyPlayerName', name);
             submitBtn.disabled = true;
             submitBtn.textContent = '...';
             
@@ -210,7 +210,7 @@ function initLeaderboard() {
                 return;
             }
             
-            localStorage.setItem('dinoDrawwPlayerName', name);
+            localStorage.setItem('dinoDeputyPlayerName', name);
             victorySubmitBtn.disabled = true;
             victorySubmitBtn.textContent = '...';
             
@@ -1827,7 +1827,7 @@ function gameOver() {
     
     // Reset name entry form
     const nameEntry = document.getElementById('name-entry');
-    const savedName = localStorage.getItem('dinoDrawwPlayerName') || '';
+    const savedName = localStorage.getItem('dinoDeputyPlayerName') || '';
     if (nameEntry) {
         nameEntry.innerHTML = `
             <p>Enter your initials:</p>
@@ -1846,7 +1846,7 @@ function gameOver() {
                     nameInput.focus();
                     return;
                 }
-                localStorage.setItem('dinoDrawwPlayerName', name);
+                localStorage.setItem('dinoDeputyPlayerName', name);
                 submitBtn.disabled = true;
                 submitBtn.textContent = '...';
                 await submitScore(name, score, false);
@@ -1891,7 +1891,7 @@ function victory() {
     
     // Reset name entry form
     const victoryNameEntry = document.getElementById('victory-name-entry');
-    const savedName = localStorage.getItem('dinoDrawwPlayerName') || '';
+    const savedName = localStorage.getItem('dinoDeputyPlayerName') || '';
     if (victoryNameEntry) {
         victoryNameEntry.innerHTML = `
             <p>Enter your initials:</p>
@@ -1910,7 +1910,7 @@ function victory() {
                     victoryNameInput.focus();
                     return;
                 }
-                localStorage.setItem('dinoDrawwPlayerName', name);
+                localStorage.setItem('dinoDeputyPlayerName', name);
                 victorySubmitBtn.disabled = true;
                 victorySubmitBtn.textContent = '...';
                 await submitScore(name, score, true);
