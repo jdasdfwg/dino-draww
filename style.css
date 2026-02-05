@@ -156,9 +156,8 @@ body {
 }
 
 #titleDino {
-    vertical-align: text-top;
-    margin-left: 4px;
-    margin-top: 2px;
+    display: block;
+    margin: 0 auto 8px auto;
 }
 
 .subtitle {
@@ -689,8 +688,9 @@ body {
     }
     
     #titleDino {
-        width: 28px;
-        height: 25px;
+        width: 50px;
+        height: 46px;
+        margin-bottom: 5px;
     }
     
     .subtitle {

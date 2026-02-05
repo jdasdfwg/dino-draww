@@ -2565,7 +2565,7 @@ function initTouchControls() {
     }
 }
 
-// Draw the title screen dino with gun (emoji-sized, same height as title text)
+// Draw the title screen dino with gun (centered above title)
 function drawTitleDino() {
     const titleCanvas = document.getElementById('titleDino');
     if (!titleCanvas) return;
@@ -2573,10 +2573,10 @@ function drawTitleDino() {
     const tctx = titleCanvas.getContext('2d');
     tctx.clearRect(0, 0, titleCanvas.width, titleCanvas.height);
     
-    // Scale factor to fit in ~36px height, positioned to align with text
-    const scale = 0.5;
-    const x = 2;
-    const y = 16; // Higher up to align with text baseline
+    // Larger scale for centered hero display
+    const scale = 0.85;
+    const x = 8;
+    const y = 28;
     
     // Cowboy hat (brown)
     tctx.fillStyle = '#6b5344';
