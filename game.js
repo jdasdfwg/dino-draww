@@ -2535,10 +2535,10 @@ function drawTitleDino() {
     const tctx = titleCanvas.getContext('2d');
     tctx.clearRect(0, 0, titleCanvas.width, titleCanvas.height);
     
-    // Scale factor to fit in ~36px height
+    // Scale factor to fit in ~36px height, positioned to align with text
     const scale = 0.5;
     const x = 2;
-    const y = 20;
+    const y = 16; // Higher up to align with text baseline
     
     // Cowboy hat (brown)
     tctx.fillStyle = '#6b5344';
