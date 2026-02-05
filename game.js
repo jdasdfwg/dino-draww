@@ -1052,7 +1052,16 @@ function drawPterodactyls() {
         const wingUp = wingPhase > 0;
         const wingOffset = wingUp ? -12 : 8;
         
-        // === RETRO PTERODACTYL (blocky, like reference) ===
+        // === RETRO PTERODACTYL (angled for easier targeting) ===
+        ctx.save();
+        
+        // Rotate around the center of the pterodactyl (tilted down ~20 degrees)
+        const centerX = ptero.x + 30;
+        const centerY = ptero.y + 15;
+        ctx.translate(centerX, centerY);
+        ctx.rotate(0.35); // ~20 degrees tilt downward
+        ctx.translate(-centerX, -centerY);
+        
         const px = ptero.x;
         const py = ptero.y;
         
@@ -1159,6 +1168,8 @@ function drawPterodactyls() {
         ctx.font = 'bold 9px Courier New';
         ctx.textAlign = 'center';
         ctx.fillText('$', px + 27, py + 32);
+        
+        ctx.restore(); // Restore canvas after rotation
     });
 }
 
