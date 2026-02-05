@@ -47,13 +47,19 @@ body {
 
 #score-row {
     display: flex;
-    gap: 20px;
+    gap: 15px;
     align-items: center;
+}
+
+#score-row > span {
+    background: rgba(255, 255, 255, 0.75);
+    padding: 3px 8px;
+    border-radius: 4px;
 }
 
 #levelDisplay {
     font-size: 14px;
-    color: #888;
+    color: #535353;
 }
 
 .btn-pause {
@@ -697,7 +703,12 @@ body {
     }
     
     #score-row {
-        gap: 10px;
+        gap: 8px;
+    }
+    
+    #score-row > span {
+        padding: 2px 5px;
+        border-radius: 3px;
     }
     
     #levelDisplay {
