@@ -2471,73 +2471,76 @@ function initTouchControls() {
     }
 }
 
-// Draw the title screen dino with gun
+// Draw the title screen dino with gun (emoji-sized, same height as title text)
 function drawTitleDino() {
     const titleCanvas = document.getElementById('titleDino');
     if (!titleCanvas) return;
     
     const tctx = titleCanvas.getContext('2d');
-    const x = 5;
-    const y = 45;
+    tctx.clearRect(0, 0, titleCanvas.width, titleCanvas.height);
+    
+    // Scale factor to fit in ~36px height
+    const scale = 0.5;
+    const x = 2;
+    const y = 20;
     
     // Cowboy hat (brown)
     tctx.fillStyle = '#6b5344';
-    // Hat crown
+    // Hat crown (simplified)
     tctx.beginPath();
-    tctx.moveTo(x + 12, y - 8);
-    tctx.lineTo(x + 12, y - 16);
-    tctx.quadraticCurveTo(x + 14, y - 22, x + 22, y - 18);
-    tctx.quadraticCurveTo(x + 30, y - 22, x + 32, y - 16);
-    tctx.lineTo(x + 32, y - 8);
+    tctx.moveTo(x + 6*scale, y - 4*scale);
+    tctx.lineTo(x + 6*scale, y - 12*scale);
+    tctx.quadraticCurveTo(x + 11*scale, y - 18*scale, x + 16*scale, y - 14*scale);
+    tctx.quadraticCurveTo(x + 21*scale, y - 18*scale, x + 26*scale, y - 12*scale);
+    tctx.lineTo(x + 26*scale, y - 4*scale);
     tctx.closePath();
     tctx.fill();
     
     // Hat band
     tctx.fillStyle = '#c9a86c';
-    tctx.fillRect(x + 12, y - 10, 20, 3);
+    tctx.fillRect(x + 6*scale, y - 6*scale, 20*scale, 2*scale);
     
-    // Hat brim
+    // Hat brim with curled ends
     tctx.fillStyle = '#6b5344';
     tctx.beginPath();
-    tctx.moveTo(x + 2, y - 5);
-    tctx.quadraticCurveTo(x + 5, y - 12, x + 10, y - 7);
-    tctx.lineTo(x + 34, y - 7);
-    tctx.quadraticCurveTo(x + 39, y - 12, x + 42, y - 5);
-    tctx.lineTo(x + 40, y - 3);
-    tctx.lineTo(x + 4, y - 3);
+    tctx.moveTo(x, y - 2*scale);
+    tctx.quadraticCurveTo(x + 3*scale, y - 8*scale, x + 6*scale, y - 4*scale);
+    tctx.lineTo(x + 26*scale, y - 4*scale);
+    tctx.quadraticCurveTo(x + 29*scale, y - 8*scale, x + 32*scale, y - 2*scale);
+    tctx.lineTo(x + 30*scale, y);
+    tctx.lineTo(x + 2*scale, y);
     tctx.closePath();
     tctx.fill();
     
     // Green dino body
     tctx.fillStyle = '#7fbc8c';
-    tctx.fillRect(x, y + 15, 30, 35);
-    tctx.fillRect(x + 15, y, 25, 20); // Head
+    tctx.fillRect(x + 4*scale, y + 8*scale, 18*scale, 20*scale);
+    tctx.fillRect(x + 12*scale, y + 2*scale, 16*scale, 12*scale); // Head
     
     // Eye
     tctx.fillStyle = '#fff';
-    tctx.fillRect(x + 32, y + 5, 5, 5);
+    tctx.fillRect(x + 22*scale, y + 5*scale, 3*scale, 3*scale);
     
     // Legs
     tctx.fillStyle = '#7fbc8c';
-    tctx.fillRect(x + 5, y + 45, 8, 12);
-    tctx.fillRect(x + 18, y + 45, 8, 12);
+    tctx.fillRect(x + 6*scale, y + 26*scale, 5*scale, 8*scale);
+    tctx.fillRect(x + 14*scale, y + 26*scale, 5*scale, 8*scale);
     
     // Tail
-    tctx.fillRect(x - 15, y + 20, 18, 10);
+    tctx.fillRect(x - 6*scale, y + 12*scale, 12*scale, 6*scale);
     
-    // Arm with gun
-    tctx.fillRect(x + 25, y + 18, 15, 6);
+    // Arm with gun extended
+    tctx.fillRect(x + 18*scale, y + 12*scale, 10*scale, 4*scale);
     
     // Gun
-    const gunX = x + 38;
-    const gunY = y + 14;
+    const gunX = x + 26*scale;
+    const gunY = y + 10*scale;
     tctx.fillStyle = '#444';
-    tctx.fillRect(gunX, gunY + 2, 14, 7);
+    tctx.fillRect(gunX, gunY + 1*scale, 8*scale, 4*scale);
     tctx.beginPath();
-    tctx.arc(gunX + 8, gunY + 5, 5, 0, Math.PI * 2);
+    tctx.arc(gunX + 4*scale, gunY + 3*scale, 3*scale, 0, Math.PI * 2);
     tctx.fill();
-    tctx.fillRect(gunX + 12, gunY + 3, 18, 4);
-    tctx.fillRect(gunX + 28, gunY, 2, 3);
+    tctx.fillRect(gunX + 6*scale, gunY + 1.5*scale, 10*scale, 2.5*scale);
 }
 
 // Start the game
