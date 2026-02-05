@@ -1122,7 +1122,26 @@ function drawPterodactyls() {
         // Head block
         ctx.fillRect(px + 5, py + 6, 16, 10);
         
-        // Long pointed beak (pterodactyl style)
+        // Money sack (hanging from beak - drawn first so beak overlaps)
+        ctx.fillStyle = '#c9a86c';
+        // Sack body hanging below beak
+        ctx.beginPath();
+        ctx.ellipse(px - 12, py + 22, 10, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Sack tie/rope to beak
+        ctx.strokeStyle = '#8b6b4a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(px - 12, py + 14);
+        ctx.lineTo(px - 12, py + 18);
+        ctx.stroke();
+        // Dollar sign on sack
+        ctx.fillStyle = '#5a4a2a';
+        ctx.font = 'bold 10px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText('$', px - 12, py + 25);
+        
+        // Long pointed beak (pterodactyl style) - gripping the sack
         ctx.fillStyle = '#8b6b4a';
         ctx.beginPath();
         ctx.moveTo(px + 5, py + 10);
@@ -1156,21 +1175,10 @@ function drawPterodactyls() {
         ctx.fillStyle = '#ff4444';
         ctx.fillRect(px + 8, py + 8, 4, 4);
         
-        // Small legs tucked under
+        // Small legs tucked under (no longer carrying sack)
         ctx.fillStyle = '#8b6b4a';
         ctx.fillRect(px + 22, py + 18, 3, 6);
         ctx.fillRect(px + 28, py + 18, 3, 6);
-        
-        // Money sack (being carried in claws)
-        ctx.fillStyle = '#c9a86c';
-        ctx.fillRect(px + 20, py + 24, 14, 10);
-        ctx.fillRect(px + 23, py + 22, 8, 4); // Sack tie
-        
-        // Dollar sign on sack
-        ctx.fillStyle = '#5a4a2a';
-        ctx.font = 'bold 9px Courier New';
-        ctx.textAlign = 'center';
-        ctx.fillText('$', px + 27, py + 32);
         
         ctx.restore(); // Restore canvas after rotation
     });
@@ -1183,10 +1191,11 @@ function checkBulletPteroCollisions() {
             const bullet = bullets[i];
             const ptero = pterodactyls[j];
             
-            if (bullet.x + bullet.width > ptero.x &&
+            // Extended hitbox to include money sack hanging from beak
+            if (bullet.x + bullet.width > ptero.x - 25 &&
                 bullet.x < ptero.x + ptero.width &&
                 bullet.y + bullet.height > ptero.y &&
-                bullet.y < ptero.y + ptero.height) {
+                bullet.y < ptero.y + ptero.height + 15) {
                 
                 // Kill pterodactyl!
                 killCombo++;
