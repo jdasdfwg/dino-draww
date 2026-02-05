@@ -1017,10 +1017,10 @@ function spawnPterodactyl() {
     pterodactyls.push({
         x: canvas.width + 50,
         y: GROUND_Y - flyHeight,
-        width: 50,
-        height: 30,
-        speed: 4 + Math.random() * 2, // Faster than ground enemies
-        wingFrame: 0
+        width: 60, // Wider for new pterodactyl design
+        height: 35,
+        speed: 3.5 + Math.random() * 1.5, // Slightly slower, more menacing
+        wingFrame: Math.random() * Math.PI * 2 // Random starting wing phase
     });
 }
 
@@ -1031,14 +1031,14 @@ function updatePterodactyls() {
         // Fly left across the screen
         ptero.x -= ptero.speed + gameSpeed * 0.5;
         
-        // Animate wings
-        ptero.wingFrame += 0.2;
+        // Slow wing flap (retro style)
+        ptero.wingFrame += 0.08;
         
         // Slight wave motion
-        ptero.y += Math.sin(ptero.wingFrame) * 0.5;
+        ptero.y += Math.sin(ptero.wingFrame * 0.5) * 0.3;
         
         // Remove if off screen
-        if (ptero.x < -60) {
+        if (ptero.x < -80) {
             pterodactyls.splice(i, 1);
         }
     }
@@ -1046,70 +1046,106 @@ function updatePterodactyls() {
 
 function drawPterodactyls() {
     pterodactyls.forEach(ptero => {
-        const wingOffset = Math.sin(ptero.wingFrame * 2) * 8;
+        // Slow, retro wing flap (up and down positions)
+        const wingPhase = Math.sin(ptero.wingFrame);
+        const wingUp = wingPhase > 0;
+        const wingOffset = wingUp ? -12 : 8;
         
-        // Body (brown)
+        // === RETRO PTERODACTYL (blocky, like reference) ===
+        const px = ptero.x;
+        const py = ptero.y;
+        
+        // Wing membrane color (tan/brown)
+        ctx.fillStyle = '#b8956b';
+        
+        // Main wing span - leathery membrane with finger bones
+        if (wingUp) {
+            // Wings UP position
+            ctx.beginPath();
+            ctx.moveTo(px + 20, py + 12); // Body connection
+            ctx.lineTo(px - 5, py - 8);   // Wing tip left
+            ctx.lineTo(px + 5, py - 5);   // Finger bone 1
+            ctx.lineTo(px + 15, py - 10); // Finger bone 2
+            ctx.lineTo(px + 25, py - 8);  // Finger bone 3
+            ctx.lineTo(px + 50, py - 5);  // Wing tip right
+            ctx.lineTo(px + 60, py + 5);  // Far wing tip
+            ctx.lineTo(px + 45, py + 10); // Back to body
+            ctx.lineTo(px + 30, py + 12);
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            // Wings DOWN position
+            ctx.beginPath();
+            ctx.moveTo(px + 20, py + 12);
+            ctx.lineTo(px - 5, py + 20);  // Wing tip left down
+            ctx.lineTo(px + 5, py + 18);
+            ctx.lineTo(px + 15, py + 22);
+            ctx.lineTo(px + 25, py + 20);
+            ctx.lineTo(px + 50, py + 25); // Wing tip right down
+            ctx.lineTo(px + 60, py + 18);
+            ctx.lineTo(px + 45, py + 10);
+            ctx.lineTo(px + 30, py + 12);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // Wing bones/fingers (darker lines)
+        ctx.strokeStyle = '#8b6b4a';
+        ctx.lineWidth = 2;
+        const tipY = wingUp ? py - 6 : py + 20;
+        ctx.beginPath();
+        ctx.moveTo(px + 25, py + 10);
+        ctx.lineTo(px + 5, tipY);
+        ctx.moveTo(px + 25, py + 10);
+        ctx.lineTo(px + 55, tipY + (wingUp ? 5 : -5));
+        ctx.stroke();
+        
+        // Body (blocky, retro style)
+        ctx.fillStyle = '#a07850';
+        ctx.fillRect(px + 18, py + 8, 18, 12); // Main torso
+        
+        // Long pointed head with crest
+        ctx.fillStyle = '#a07850';
+        // Head block
+        ctx.fillRect(px + 5, py + 6, 16, 10);
+        
+        // Long pointed beak (pterodactyl style)
         ctx.fillStyle = '#8b6b4a';
-        
-        // Main body
         ctx.beginPath();
-        ctx.ellipse(ptero.x + 25, ptero.y + 15, 20, 10, 0, 0, Math.PI * 2);
+        ctx.moveTo(px + 5, py + 10);
+        ctx.lineTo(px - 18, py + 14);  // Long sharp beak point
+        ctx.lineTo(px + 5, py + 16);
+        ctx.closePath();
         ctx.fill();
         
-        // Head
+        // Head crest (extending back like real pterodactyl)
+        ctx.fillStyle = '#a07850';
         ctx.beginPath();
-        ctx.ellipse(ptero.x + 5, ptero.y + 10, 8, 6, -0.3, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Beak
-        ctx.fillStyle = '#6b5344';
-        ctx.beginPath();
-        ctx.moveTo(ptero.x - 5, ptero.y + 10);
-        ctx.lineTo(ptero.x - 15, ptero.y + 12);
-        ctx.lineTo(ptero.x - 5, ptero.y + 14);
+        ctx.moveTo(px + 18, py + 6);
+        ctx.lineTo(px + 28, py - 2);   // Crest point
+        ctx.lineTo(px + 22, py + 8);
         ctx.closePath();
         ctx.fill();
         
         // Red menacing eye
         ctx.fillStyle = '#ff4444';
-        ctx.beginPath();
-        ctx.arc(ptero.x + 2, ptero.y + 8, 3, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(px + 8, py + 8, 4, 4);
         
-        // Wings
-        ctx.fillStyle = '#a08060';
-        // Left wing
-        ctx.beginPath();
-        ctx.moveTo(ptero.x + 15, ptero.y + 10);
-        ctx.lineTo(ptero.x + 5, ptero.y - 5 + wingOffset);
-        ctx.lineTo(ptero.x + 30, ptero.y + 5);
-        ctx.closePath();
-        ctx.fill();
+        // Small legs tucked under
+        ctx.fillStyle = '#8b6b4a';
+        ctx.fillRect(px + 22, py + 18, 3, 6);
+        ctx.fillRect(px + 28, py + 18, 3, 6);
         
-        // Right wing  
-        ctx.beginPath();
-        ctx.moveTo(ptero.x + 35, ptero.y + 10);
-        ctx.lineTo(ptero.x + 45, ptero.y - 5 - wingOffset);
-        ctx.lineTo(ptero.x + 50, ptero.y + 15);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Legs/claws
-        ctx.fillStyle = '#6b5344';
-        ctx.fillRect(ptero.x + 18, ptero.y + 22, 3, 8);
-        ctx.fillRect(ptero.x + 28, ptero.y + 22, 3, 8);
-        
-        // Money sack (being carried)
+        // Money sack (being carried in claws)
         ctx.fillStyle = '#c9a86c';
-        ctx.beginPath();
-        ctx.ellipse(ptero.x + 23, ptero.y + 32, 8, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(px + 20, py + 24, 14, 10);
+        ctx.fillRect(px + 23, py + 22, 8, 4); // Sack tie
         
         // Dollar sign on sack
         ctx.fillStyle = '#5a4a2a';
-        ctx.font = 'bold 8px Arial';
+        ctx.font = 'bold 9px Courier New';
         ctx.textAlign = 'center';
-        ctx.fillText('$', ptero.x + 23, ptero.y + 35);
+        ctx.fillText('$', px + 27, py + 32);
     });
 }
 
