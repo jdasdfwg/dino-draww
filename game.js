@@ -1246,7 +1246,9 @@ function drawCacti() {
 }
 
 function drawCactus(cactus) {
-    ctx.fillStyle = '#535353';
+    // Green cactus body
+    ctx.fillStyle = '#5a8f5a';
+    
     // Main trunk
     ctx.fillRect(cactus.x, cactus.y, cactus.width, cactus.height);
     
@@ -1259,6 +1261,22 @@ function drawCactus(cactus) {
         // Right arm
         ctx.fillRect(cactus.x + cactus.width - 2, cactus.y + 15, 10, 5);
         ctx.fillRect(cactus.x + cactus.width + 3, cactus.y + 10, 5, 15);
+    }
+    
+    // White spikes
+    ctx.fillStyle = '#fff';
+    const spikeSpacing = 8;
+    for (let y = cactus.y + 5; y < cactus.y + cactus.height - 5; y += spikeSpacing) {
+        // Left side spikes
+        ctx.fillRect(cactus.x - 2, y, 3, 2);
+        // Right side spikes
+        ctx.fillRect(cactus.x + cactus.width - 1, y + 4, 3, 2);
+    }
+    
+    // Spikes on arms for big cacti
+    if (cactus.width > 22) {
+        ctx.fillRect(cactus.x - 10, cactus.y + 8, 3, 2);
+        ctx.fillRect(cactus.x + cactus.width + 7, cactus.y + 13, 3, 2);
     }
 }
 

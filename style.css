@@ -37,12 +37,14 @@ body {
 #ui {
     position: absolute;
     top: 10px;
-    left: 20px;
-    right: 50px;
+    left: 10px;
     font-size: 16px;
     color: #535353;
     font-weight: bold;
     letter-spacing: 2px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 6px 12px;
+    border-radius: 6px;
 }
 
 #score-row {
@@ -51,15 +53,9 @@ body {
     align-items: center;
 }
 
-#score-row > span {
-    background: rgba(255, 255, 255, 0.75);
-    padding: 3px 8px;
-    border-radius: 4px;
-}
-
 #levelDisplay {
     font-size: 14px;
-    color: #535353;
+    color: #6b5344;
 }
 
 .btn-pause {
@@ -134,14 +130,14 @@ body {
     color: #fff;
 }
 
-/* Start Screen */
+/* Start Screen - Western sunset theme */
 #start-screen {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.95);
+    background: linear-gradient(to bottom, #5d4a6b 0%, #8b6b5a 40%, #d4956a 70%, #e8c49a 100%);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -150,27 +146,31 @@ body {
 
 .start-content {
     text-align: center;
-    color: #535353;
+    color: #fff;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
 }
 
 .start-content h1 {
     font-size: 32px;
     margin-bottom: 5px;
     letter-spacing: 4px;
+    color: #fff;
 }
 
 .subtitle {
     font-size: 14px;
-    color: #7fbc8c;
+    color: #b8e6b8;
     margin-bottom: 30px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
 .controls-info {
-    background: #f0f0f0;
+    background: rgba(255, 255, 255, 0.2);
     padding: 20px 30px;
     border-radius: 8px;
     margin-bottom: 30px;
     text-align: left;
+    color: #fff;
 }
 
 .controls-info p {
@@ -178,8 +178,12 @@ body {
     font-size: 14px;
 }
 
+.controls-info p strong {
+    color: #ffd699;
+}
+
 .controls-info .warning {
-    color: #c44;
+    color: #ffaaaa;
     font-size: 12px;
     margin-top: 15px;
 }
@@ -187,6 +191,7 @@ body {
 .press-start {
     font-size: 18px;
     animation: blink 1s infinite;
+    color: #ffd699;
 }
 
 /* Mobile/Desktop visibility helpers */
@@ -207,16 +212,21 @@ body {
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     color: #fff;
-    background: #535353;
+    background: #6b5344;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     margin-top: 10px;
     -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn-play:hover {
+    background: #5a4538;
 }
 
 .btn-play:active {
-    background: #333;
+    background: #4a3828;
 }
 
 @keyframes blink {
@@ -224,14 +234,14 @@ body {
     51%, 100% { opacity: 0.3; }
 }
 
-/* Game Over Screen */
+/* Game Over Screen - Dusk theme (you failed at sunset) */
 #game-over-screen {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.95);
+    background: linear-gradient(to bottom, #4a3f5b 0%, #6b5a6b 30%, #8b6b5a 60%, #a07050 100%);
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -246,14 +256,16 @@ body {
 
 .game-over-content {
     text-align: center;
-    color: #535353;
+    color: #fff;
     padding: 5px 10px 15px 10px;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
 }
 
 .game-over-content h1 {
     font-size: 22px;
     margin-bottom: 3px;
     letter-spacing: 3px;
+    color: #ffccaa;
 }
 
 .game-over-content p {
@@ -300,14 +312,14 @@ body {
     animation: blink 1s infinite;
 }
 
-/* Victory Screen */
+/* Victory Screen - Dawn theme (you made it to sunrise!) */
 #victory-screen {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.95);
+    background: linear-gradient(to bottom, #6b8fa3 0%, #a8c4d4 30%, #ffd699 60%, #ffaa66 100%);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -320,18 +332,20 @@ body {
 
 .victory-content {
     text-align: center;
-    color: #535353;
+    color: #fff;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
 }
 
 .victory-content h1 {
     font-size: 28px;
     margin-bottom: 10px;
     letter-spacing: 3px;
+    color: #fff;
 }
 
 .victory-subtitle {
     font-size: 16px;
-    color: #888;
+    color: #e8f4e8;
     margin-bottom: 20px;
 }
 
@@ -356,9 +370,13 @@ body {
 }
 
 .btn-secondary {
-    background: transparent;
-    color: #535353;
-    border: 2px solid #535353;
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 2px solid rgba(255,255,255,0.5);
+}
+
+.btn-secondary:hover {
+    background: rgba(255,255,255,0.3);
 }
 
 .btn-secondary:hover {
@@ -376,7 +394,7 @@ body {
 
 .rank-display {
     font-size: 13px;
-    color: #888;
+    color: rgba(255,255,255,0.8);
     margin: 3px 0 8px 0;
 }
 
@@ -459,7 +477,7 @@ body {
 
 .skip-hint {
     font-size: 10px;
-    color: #aaa;
+    color: rgba(255,255,255,0.6);
     margin-top: 3px;
 }
 
@@ -702,13 +720,13 @@ body {
         font-size: 12px;
     }
     
-    #score-row {
-        gap: 8px;
+    #ui {
+        padding: 4px 8px;
+        border-radius: 4px;
     }
     
-    #score-row > span {
-        padding: 2px 5px;
-        border-radius: 3px;
+    #score-row {
+        gap: 8px;
     }
     
     #levelDisplay {
