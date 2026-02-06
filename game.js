@@ -292,6 +292,7 @@ const POINTS_PER_LEVEL = 250;
 const MAX_LEVEL = 10;
 const WIN_SCORE = (MAX_LEVEL * POINTS_PER_LEVEL) + POINTS_PER_LEVEL; // 2750 points to win
 let freePlayMode = false;
+let endlessMode = false; // Pure survival mode - no levels, score-based difficulty
 let levelUpAnimation = 0; // Timer for level up animation
 
 // Kill combo system
@@ -1639,8 +1640,9 @@ function drawLandmarks() {
 
 // Calculate sun position and sky colors based on level (1-10)
 function getSkyState() {
-    // Level 1 = dawn (0), Level 10 = dusk (1)
-    const progress = Math.min((currentLevel - 1) / 9, 1); // 0 to 1
+    // Endless mode: fixed dramatic dusk sky
+    // Campaign: Level 1 = dawn (0), Level 10 = dusk (1)
+    const progress = endlessMode ? 0.85 : Math.min((currentLevel - 1) / 9, 1); // Fixed sunset for endless
     
     // Sun position: starts low-left, arcs to high middle, ends low-right
     // Using a parabola for the arc
@@ -1950,18 +1952,20 @@ function drawBonusTexts() {
 function updateScore() {
     score++;
     
-    // Check for level up
-    const newLevel = Math.min(MAX_LEVEL, Math.floor(score / POINTS_PER_LEVEL) + 1);
-    if (newLevel > currentLevel && currentLevel < MAX_LEVEL) {
-        currentLevel = newLevel;
-        levelUpAnimation = 120; // 2 seconds of animation
-        createBonusText(canvas.width / 2, 80, 'LEVEL ' + currentLevel, '#222');
-        playLevelUpSound();
-        updateLevelDisplay();
+    // Check for level up (skip in endless mode)
+    if (!endlessMode) {
+        const newLevel = Math.min(MAX_LEVEL, Math.floor(score / POINTS_PER_LEVEL) + 1);
+        if (newLevel > currentLevel && currentLevel < MAX_LEVEL) {
+            currentLevel = newLevel;
+            levelUpAnimation = 120; // 2 seconds of animation
+            createBonusText(canvas.width / 2, 80, 'LEVEL ' + currentLevel, '#222');
+            playLevelUpSound();
+            updateLevelDisplay();
+        }
     }
     
-    // Check for victory (after completing level 10)
-    if (!freePlayMode && score >= WIN_SCORE) {
+    // Check for victory (after completing level 10) - skip in endless mode
+    if (!freePlayMode && !endlessMode && score >= WIN_SCORE) {
         victory();
         return;
     }
@@ -1980,7 +1984,9 @@ function updateScore() {
 function updateLevelDisplay() {
     const levelEl = document.getElementById('levelDisplay');
     if (levelEl) {
-        if (freePlayMode) {
+        if (endlessMode) {
+            levelEl.textContent = 'ENDLESS';
+        } else if (freePlayMode) {
             levelEl.textContent = 'FREE PLAY';
         } else {
             levelEl.textContent = 'LV ' + currentLevel;
@@ -1996,58 +2002,101 @@ let lastCactusSpawn = 0;
 
 function manageSpawns() {
     // Early game (first 20 seconds / 1200 frames) - easier spawning
-    const isEarlyGame = frameCount < 1200;
+    // In endless mode, shorter early game period
+    const earlyGameFrames = endlessMode ? 600 : 1200;
+    const isEarlyGame = frameCount < earlyGameFrames;
     
     // Spawn cacti - interval decreases as speed increases
     // In early game, add extra spacing between cacti
     let cactusInterval = Math.max(50, 140 - gameSpeed * 6);
     if (isEarlyGame) {
-        cactusInterval += 40; // Extra spacing in first 20 seconds
+        cactusInterval += endlessMode ? 20 : 40; // Less spacing in endless
     }
     if (frameCount - lastCactusSpawn > cactusInterval + Math.random() * 80) {
         spawnCactus();
         lastCactusSpawn = frameCount;
     }
     
-    // Spawn enemy bandits after score hits 100
-    // More bandits as levels progress
+    // Spawn enemy bandits
+    // In endless mode, use score-based difficulty
     let enemySpawnInterval = ENEMY_SPAWN_INTERVAL;
     let maxEnemies = 4;
     let spawnChance = 0.75;
+    let enemyStartScore = 100;
     
-    if (currentLevel >= 3) {
-        enemySpawnInterval = 100; // Faster spawns after level 3
-        maxEnemies = 5;
-        spawnChance = 0.8;
+    if (endlessMode) {
+        // Endless mode: score-based difficulty scaling
+        enemyStartScore = 50; // Bandits appear earlier in endless
+        
+        if (score >= 200) {
+            enemySpawnInterval = 100;
+            maxEnemies = 5;
+            spawnChance = 0.8;
+        }
+        if (score >= 500) {
+            enemySpawnInterval = 80;
+            maxEnemies = 6;
+            spawnChance = 0.85;
+        }
+        if (score >= 1000) {
+            enemySpawnInterval = 60;
+            maxEnemies = 7;
+            spawnChance = 0.9;
+        }
+        if (score >= 1500) {
+            enemySpawnInterval = 50;
+            maxEnemies = 8;
+            spawnChance = 0.95;
+        }
+    } else {
+        // Campaign mode: level-based difficulty
+        if (currentLevel >= 3) {
+            enemySpawnInterval = 100;
+            maxEnemies = 5;
+            spawnChance = 0.8;
+        }
+        if (currentLevel >= 6) {
+            enemySpawnInterval = 80;
+            maxEnemies = 6;
+            spawnChance = 0.85;
+        }
     }
     
-    if (currentLevel >= 6) {
-        enemySpawnInterval = 80; // Even faster spawns after level 6
-        maxEnemies = 6;
-        spawnChance = 0.85;
-    }
-    
-    if (score >= 100 && frameCount - lastEnemySpawn > enemySpawnInterval) {
+    if (score >= enemyStartScore && frameCount - lastEnemySpawn > enemySpawnInterval) {
         if (Math.random() < spawnChance && enemies.length < maxEnemies) {
             spawnEnemy();
         }
         lastEnemySpawn = frameCount;
     }
     
-    // Spawn pterodactyls starting at level 5
-    if (currentLevel >= 5 && frameCount - lastPteroSpawn > PTERO_SPAWN_INTERVAL) {
-        // 60% chance to spawn, max 2 on screen
+    // Spawn pterodactyls
+    // In endless mode, use score-based spawning
+    let pteroActive = endlessMode ? (score >= 300) : (currentLevel >= 5);
+    
+    if (pteroActive && frameCount - lastPteroSpawn > PTERO_SPAWN_INTERVAL) {
         let pteroChance = 0.6;
         let maxPteros = 2;
         
-        // More pterodactyls at higher levels
-        if (currentLevel >= 7) {
-            pteroChance = 0.75;
-            maxPteros = 3;
-        }
-        if (currentLevel >= 9) {
-            pteroChance = 0.85;
-            maxPteros = 4;
+        if (endlessMode) {
+            // Score-based pterodactyl scaling
+            if (score >= 600) {
+                pteroChance = 0.75;
+                maxPteros = 3;
+            }
+            if (score >= 1000) {
+                pteroChance = 0.85;
+                maxPteros = 4;
+            }
+        } else {
+            // Level-based pterodactyl scaling
+            if (currentLevel >= 7) {
+                pteroChance = 0.75;
+                maxPteros = 3;
+            }
+            if (currentLevel >= 9) {
+                pteroChance = 0.85;
+                maxPteros = 4;
+            }
         }
         
         if (Math.random() < pteroChance && pterodactyls.length < maxPteros) {
@@ -2169,6 +2218,56 @@ function startGame() {
     lastCactusSpawn = 0;
     currentLevel = 1;
     freePlayMode = false;
+    endlessMode = false; // Campaign mode
+    levelUpAnimation = 0;
+    
+    // Clear obstacles and enemies
+    cacti.length = 0;
+    bullets.length = 0;
+    enemies.length = 0;
+    enemyBullets.length = 0;
+    pterodactyls.length = 0;
+    particles.length = 0;
+    bonusTexts.length = 0;
+    passedCacti.clear();
+    passedBullets.clear();
+    cactusIdCounter = 0;
+    shootCooldown = 0;
+    shootKeyReleased = true;
+    lastEnemySpawn = 0;
+    lastPteroSpawn = 0;
+    killCombo = 0;
+    comboTimer = 0;
+    
+    // Reset player
+    player.reset();
+    
+    // Update UI
+    currentScoreEl.textContent = '00000';
+    highScoreEl.textContent = highScore.toString().padStart(5, '0');
+    updateLevelDisplay();
+    
+    // Hide all screens
+    startScreen.style.display = 'none';
+    gameOverScreen.classList.add('hidden');
+    const pauseScreen = document.getElementById('pause-screen');
+    if (pauseScreen) pauseScreen.classList.add('hidden');
+    const victoryScreen = document.getElementById('victory-screen');
+    if (victoryScreen) victoryScreen.classList.add('hidden');
+}
+
+// Endless mode - pure survival, no levels, score-based difficulty
+function startEndlessMode() {
+    initAudio();
+    playStartSound();
+    gameState = 'playing';
+    score = 0;
+    gameSpeed = BASE_SPEED;
+    frameCount = 0;
+    lastCactusSpawn = 0;
+    currentLevel = 1; // Used internally for sky state
+    freePlayMode = false;
+    endlessMode = true; // Enable endless mode
     levelUpAnimation = 0;
     
     // Clear obstacles and enemies
@@ -2377,6 +2476,13 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
+    // E key to start endless mode
+    if (e.code === 'KeyE') {
+        if (gameState === 'start') {
+            startEndlessMode();
+        }
+    }
+    
     // D key to play again from game over
     if (e.code === 'KeyD') {
         if (gameState === 'gameover') {
@@ -2443,7 +2549,7 @@ function initTouchControls() {
     const btnStart = document.getElementById('btn-start');
     const btnRestart = document.getElementById('btn-restart');
     
-    // START button - tap to start game
+    // START button - tap to start campaign
     if (btnStart) {
         btnStart.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -2456,6 +2562,24 @@ function initTouchControls() {
             e.preventDefault();
             if (gameState === 'start') {
                 startGame();
+            }
+        });
+    }
+    
+    // ENDLESS button - tap to start endless mode
+    const btnEndless = document.getElementById('btn-endless');
+    if (btnEndless) {
+        btnEndless.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameState === 'start') {
+                startEndlessMode();
+            }
+        }, { passive: false });
+        
+        btnEndless.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (gameState === 'start') {
+                startEndlessMode();
             }
         });
     }

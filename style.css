@@ -232,6 +232,46 @@ body {
     background: #4a3828;
 }
 
+/* Mode selection buttons container */
+.mode-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+/* Endless mode button */
+.btn-endless {
+    display: none;
+    padding: 12px 35px;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    color: #fff;
+    background: linear-gradient(135deg, #ff6b4a, #c94a2a);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.btn-endless:hover {
+    background: linear-gradient(135deg, #ff8066, #d95a3a);
+}
+
+.btn-endless:active {
+    background: linear-gradient(135deg, #e55a3a, #b93a1a);
+}
+
+.press-endless {
+    font-size: 14px;
+    color: #ff9966;
+    margin-top: 5px;
+}
+
 @keyframes blink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0.3; }
@@ -656,8 +696,14 @@ body {
         display: none;
     }
     
-    .btn-play {
+    .btn-play,
+    .btn-endless {
         display: inline-block;
+    }
+    
+    .mode-buttons {
+        flex-direction: row;
+        gap: 10px;
     }
     
     body {
