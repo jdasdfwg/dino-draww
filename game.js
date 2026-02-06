@@ -1258,8 +1258,9 @@ function checkPteroStomp() {
             const points = 10 * comboMultiplier;
             score += points;
             
-            // Bounce the player
+            // Bounce the player and grant another jump
             player.velocityY = JUMP_FORCE * 0.7;
+            player.jumpCount = 1; // Allow one more jump after stomp
             
             // Death particles
             for (let k = 0; k < 10; k++) {
@@ -1475,8 +1476,9 @@ function checkStompKill() {
             // Stomp kill!
             enemies.splice(i, 1);
             
-            // Bounce player up
+            // Bounce player up and grant another jump
             player.velocityY = -10;
+            player.jumpCount = 1; // Allow one more jump after stomp
             
             // Combo system!
             killCombo++;
