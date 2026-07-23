@@ -41,13 +41,13 @@ try {
 
 // Get today's date string for daily leaderboard (PST timezone)
 function getTodayString() {
-    const now = new Date();
-    // Convert to PST/PDT (America/Los_Angeles)
-    const pstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-    const year = pstDate.getFullYear();
-    const month = String(pstDate.getMonth() + 1).padStart(2, '0');
-    const day = String(pstDate.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`; // YYYY-MM-DD in PST
+    // en-CA formats as YYYY-MM-DD; timeZone keeps "today" in America/Los_Angeles
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date());
 }
 
 // Submit score to leaderboard
@@ -71,30 +71,51 @@ async function submitScore(playerName, playerScore, isVictory = false) {
     }
 }
 
+function mapScoreDocs(snapshot) {
+    const scores = [];
+    snapshot.forEach(doc => {
+        scores.push({ id: doc.id, ...doc.data() });
+    });
+    return scores;
+}
+
+// Fetch today's scores, ordered by score desc (composite index preferred; falls back if missing)
+async function getTodayScores(limit = 10) {
+    const today = getTodayString();
+    
+    try {
+        const snapshot = await db.collection('scores')
+            .where('date', '==', today)
+            .orderBy('score', 'desc')
+            .limit(limit)
+            .get();
+        return mapScoreDocs(snapshot);
+    } catch (e) {
+        // Missing composite index (date + score) — fetch today's docs and sort client-side
+        console.warn('Today leaderboard indexed query failed, using fallback:', e);
+        const snapshot = await db.collection('scores')
+            .where('date', '==', today)
+            .get();
+        return mapScoreDocs(snapshot)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, limit);
+    }
+}
+
 // Get leaderboard (today or all-time)
 async function getLeaderboard(type = 'today', limit = 10) {
     if (!db) return [];
     
     try {
-        // Get all scores sorted by score (works without index)
-        const snapshot = await db.collection('scores')
-            .orderBy('score', 'desc')
-            .limit(100) // Get more to filter
-            .get();
-        
-        let scores = [];
-        snapshot.forEach(doc => {
-            scores.push({ id: doc.id, ...doc.data() });
-        });
-        
-        // Filter for today if needed
         if (type === 'today') {
-            const today = getTodayString();
-            scores = scores.filter(s => s.date === today);
+            return await getTodayScores(limit);
         }
         
-        // Return top entries
-        return scores.slice(0, limit);
+        const snapshot = await db.collection('scores')
+            .orderBy('score', 'desc')
+            .limit(limit)
+            .get();
+        return mapScoreDocs(snapshot);
     } catch (e) {
         console.error('Error getting leaderboard:', e);
         return [];
@@ -106,23 +127,32 @@ async function getPlayerRank(playerScore, type = 'today') {
     if (!db) return null;
     
     try {
-        // Get all scores and count how many are higher
+        if (type === 'today') {
+            const today = getTodayString();
+            try {
+                const snapshot = await db.collection('scores')
+                    .where('date', '==', today)
+                    .where('score', '>', playerScore)
+                    .get();
+                return snapshot.size + 1;
+            } catch (e) {
+                // Missing composite index — count from today's docs
+                console.warn('Today rank indexed query failed, using fallback:', e);
+                const snapshot = await db.collection('scores')
+                    .where('date', '==', today)
+                    .get();
+                let higher = 0;
+                snapshot.forEach(doc => {
+                    if (doc.data().score > playerScore) higher++;
+                });
+                return higher + 1;
+            }
+        }
+        
         const snapshot = await db.collection('scores')
             .where('score', '>', playerScore)
             .get();
-        
-        let higherScores = [];
-        snapshot.forEach(doc => {
-            higherScores.push({ id: doc.id, ...doc.data() });
-        });
-        
-        // Filter for today if needed
-        if (type === 'today') {
-            const today = getTodayString();
-            higherScores = higherScores.filter(s => s.date === today);
-        }
-        
-        return higherScores.length + 1;
+        return snapshot.size + 1;
     } catch (e) {
         console.error('Error getting rank:', e);
         return null;
@@ -194,7 +224,16 @@ function initLeaderboard() {
             submitBtn.disabled = true;
             submitBtn.textContent = '...';
             
-            await submitScore(name, score, false);
+            const id = await submitScore(name, score, false);
+            if (!id) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'SUBMIT';
+                const existing = nameEntry.querySelector('.submit-error');
+                if (existing) existing.remove();
+                nameEntry.insertAdjacentHTML('beforeend',
+                    '<p class="submitted-msg submit-error">Submit failed — try again</p>');
+                return;
+            }
             
             // Hide name entry, show submitted state
             nameEntry.innerHTML = `<p class="submitted-msg">Submitted as ${name.toUpperCase()}</p>`;
@@ -217,7 +256,16 @@ function initLeaderboard() {
             victorySubmitBtn.disabled = true;
             victorySubmitBtn.textContent = '...';
             
-            await submitScore(name, score, true);
+            const id = await submitScore(name, score, true);
+            if (!id) {
+                victorySubmitBtn.disabled = false;
+                victorySubmitBtn.textContent = 'SUBMIT';
+                const existing = victoryNameEntry.querySelector('.submit-error');
+                if (existing) existing.remove();
+                victoryNameEntry.insertAdjacentHTML('beforeend',
+                    '<p class="submitted-msg submit-error">Submit failed — try again</p>');
+                return;
+            }
             
             // Hide name entry, show submitted state
             victoryNameEntry.innerHTML = `<p class="submitted-msg">Submitted as ${name.toUpperCase()}</p>`;
@@ -2339,7 +2387,16 @@ function gameOver() {
                 localStorage.setItem('dinoDeputyPlayerName', name);
                 submitBtn.disabled = true;
                 submitBtn.textContent = '...';
-                await submitScore(name, score, false);
+                const id = await submitScore(name, score, false);
+                if (!id) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'SUBMIT';
+                    const existing = nameEntry.querySelector('.submit-error');
+                    if (existing) existing.remove();
+                    nameEntry.insertAdjacentHTML('beforeend',
+                        '<p class="submitted-msg submit-error">Submit failed — try again</p>');
+                    return;
+                }
                 nameEntry.innerHTML = `<p class="submitted-msg">Submitted as ${name.toUpperCase()}</p>`;
                 displayLeaderboard('leaderboard-list', 'today', score, name);
             });
@@ -2403,7 +2460,16 @@ function victory() {
                 localStorage.setItem('dinoDeputyPlayerName', name);
                 victorySubmitBtn.disabled = true;
                 victorySubmitBtn.textContent = '...';
-                await submitScore(name, score, true);
+                const id = await submitScore(name, score, true);
+                if (!id) {
+                    victorySubmitBtn.disabled = false;
+                    victorySubmitBtn.textContent = 'SUBMIT';
+                    const existing = victoryNameEntry.querySelector('.submit-error');
+                    if (existing) existing.remove();
+                    victoryNameEntry.insertAdjacentHTML('beforeend',
+                        '<p class="submitted-msg submit-error">Submit failed — try again</p>');
+                    return;
+                }
                 victoryNameEntry.innerHTML = `<p class="submitted-msg">Submitted as ${name.toUpperCase()}</p>`;
                 displayLeaderboard('victory-leaderboard-list', 'today', score, name);
             });
